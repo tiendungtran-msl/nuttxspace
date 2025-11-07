@@ -1,0 +1,36 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_MAKE_PWM
+	tristate "Make PWM Example Application"
+	default n
+	depends on PWM
+	---help---
+		Enable the PWM example application
+
+if EXAMPLES_MAKE_PWM
+
+config EXAMPLES_MAKE_PWM_PROGNAME
+	string "Program name"
+	default "make_pwm"
+	---help---
+		This is the name of the program that will be used when the NSH ELF
+		program is installed.
+
+config EXAMPLES_MAKE_PWM_PRIORITY
+	int "Make PWM Example priority"
+	default 100
+	---help---
+		Priority of the PWM example application.
+
+config EXAMPLES_MAKE_PWM_STACKSIZE
+	int "PWM Example stack size"
+	default DEFAULT_TASK_STACKSIZE
+	---help---
+		Stack size of the PWM example application.
+
+endif
+
+kcon

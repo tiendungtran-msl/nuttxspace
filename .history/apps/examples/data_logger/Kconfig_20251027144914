@@ -1,0 +1,27 @@
+# apps/data_logger/Kconfig
+
+config DATA_LOGGER
+	tristate "Data Logger Application"
+	default n
+	---help---
+		Multi-sensor data logging application
+
+if DATA_LOGGER
+
+config DATA_LOGGER_SENSOR_INTERVAL
+	int "Sensor sampling interval (ms)"
+	default 100
+
+config DATA_LOGGER_STORAGE_INTERVAL
+	int "Storage write interval (ms)"
+	default 1000
+
+config DATA_LOGGER_DISPLAY_REFRESH
+	int "Display refresh interval (ms)"
+	default 500
+
+config DATA_LOGGER_WATCHDOG_TIMEOUT
+	int "Watchdog timeout (ms)"
+	default 5000
+
+endif # DATA_LOGGER

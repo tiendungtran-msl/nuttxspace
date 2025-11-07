@@ -1,0 +1,7 @@
+config EXAMPLES_GPIO_DEMO
+    tr "GPIO Demo Application"
+    default n
+    depends on GPIO
+    ---help---
+        Enable a simple GPIO demo application.
+        This example toggles LED on PC13 via /dev/gpio0.

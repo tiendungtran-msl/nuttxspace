@@ -1,0 +1,12 @@
+# File: apps/examples/gpio_pc13/Makefile
+
+include $(APPDIR)/Make.defs
+
+PROGNAME = gpio_pc13
+PRIORITY = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_DEFAULT_TASK_STACKSIZE)
+MODULE = $(CONFIG_EXAMPLES_GPIO_PC13)
+
+MAINSRC = gpio_pc13_main.c
+
+include $(APPDIR)/Application.mk

@@ -1,0 +1,12 @@
+include $(APPDIR)/Make.defs
+
+# STM32 Blink Application
+
+PROGNAME  = stm32_blink
+PRIORITY  = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_DEFAULT_TASK_STACKSIZE)
+MODULE    = $(CONFIG_EXAMPLES_STM32_BLINK)
+
+MAINSRC = main.c
+
+include $(APPDIR)/Application.mk

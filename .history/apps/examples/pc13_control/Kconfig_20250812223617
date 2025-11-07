@@ -1,0 +1,37 @@
+config EXAMPLES_PC13_CONTROL
+	tristate "PC13 Control Example"
+	default n
+	depends on STM32_GPIOC
+	---help---
+		Enable the PC13 GPIO control example application.
+		This application demonstrates controlling PC13 pin on STM32F411.
+
+if EXAMPLES_PC13_CONTROL
+
+config EXAMPLES_PC13_CONTROL_PROGNAME
+	string "Program name"
+	default "pc13_control"
+	---help---
+		This is the name of the program that will be used when the NSH ELF
+		program is installed.
+
+config EXAMPLES_PC13_CONTROL_PRIORITY
+	int "PC13 Control task priority"
+	default 100
+
+config EXAMPLES_PC13_CONTROL_STACKSIZE
+	int "PC13 Control stack size"
+	default DEFAULT_TASK_STACKSIZE
+
+config PC13_CONTROL_AUTO_BLINK
+	bool "Enable auto blink mode"
+	default y
+	---help---
+		Enable automatic LED blinking functionality
+
+config PC13_CONTROL_BLINK_INTERVAL
+	int "Default blink interval (ms)"
+	default 1000
+	depends on PC13_CONTROL_AUTO_BLINK
+
+endif

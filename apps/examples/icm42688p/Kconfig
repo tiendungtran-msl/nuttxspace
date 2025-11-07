@@ -1,0 +1,25 @@
+config EXAMPLES_ICM42688P
+    tristate "ICM-42688-P IMU driver example"
+    default n
+    ---help---
+        Enable the ICM-42688-P IMU driver example application
+        for STM32H743 with NuttX RTOS.
+
+if EXAMPLES_ICM42688P
+
+config EXAMPLES_ICM42688P_PROGNAME
+    string "Program name"
+    default "icm42688p"
+    ---help---
+        This is the name of the program that will be used when the NSH ELF
+        program is installed.
+
+config EXAMPLES_ICM42688P_PRIORITY
+    int "ICM42688P task priority"
+    default 100
+
+config EXAMPLES_ICM42688P_STACKSIZE
+    int "ICM42688P stack size"
+    default DEFAULT_TASK_STACKSIZE
+
+endif

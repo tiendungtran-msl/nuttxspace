@@ -1,0 +1,27 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_STM32_GPIO_CONTROL
+	tristate "STM32 GPIO Control Example"
+	default n
+	depends on ARCH_BOARD_STM32F411_MINIMUM
+	---help---
+		Enable the STM32 GPIO control example for PC13 pin control
+
+if EXAMPLES_STM32_GPIO_CONTROL
+
+config EXAMPLES_STM32_GPIO_CONTROL_PROGNAME
+	string "Program name"
+	default "gpio_ctrl"
+
+config EXAMPLES_STM32_GPIO_CONTROL_PRIORITY
+	int "Task priority"
+	default 100
+
+config EXAMPLES_STM32_GPIO_CONTROL_STACKSIZE
+	int "Stack size"
+	default DEFAULT_TASK_STACKSIZE
+
+endif

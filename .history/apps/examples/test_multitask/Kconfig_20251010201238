@@ -1,0 +1,21 @@
+config EXAMPLES_STM32_MULTITASK
+	tristate "STM32 Multi-Task RTOS Application"
+	default n
+	---help---
+		Enable the STM32 Multi-Task RTOS application
+
+if EXAMPLES_STM32_MULTITASK
+
+config EXAMPLES_STM32_MULTITASK_PROGNAME
+	string "Program name"
+	default "stm32_multitask"
+
+config EXAMPLES_STM32_MULTITASK_PRIORITY
+	int "Task priority"
+	default 100
+
+config EXAMPLES_STM32_MULTITASK_STACKSIZE
+	int "Stack size"
+	default 2048
+
+endif

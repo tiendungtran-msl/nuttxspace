@@ -1,0 +1,3 @@
+ifneq ($(CONFIG_EXAMPLES_NUTTX_RTOS_APP),)
+CONFIGURED_APPS += $(APPDIR)/examples/mpu6050
+endif

@@ -1,0 +1,28 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/nuttx/**",
+                "${workspaceFolder}/nuttx/include/**",
+                "${workspaceFolder}/apps/**"
+            ],
+            "defines": [
+                "FAR=",
+                "ERROR=-1",
+                "OK=0",
+                "CLOCK_MONOTONIC=1"
+            ],
+            "browse": {
+                "path": [
+                    "${workspaceFolder}/nuttx",
+                    "${workspaceFolder}/apps"
+                ]
+            },
+            "cStandard": "c11",
+            "compilerPath": "/usr/bin/arm-none-eabi-gcc",
+            "dotConfig": "${workspaceFolder}/nuttx/.config"
+        }
+    ],
+    "version": 4
+}

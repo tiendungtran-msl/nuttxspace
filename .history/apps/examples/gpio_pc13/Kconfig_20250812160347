@@ -1,0 +1,27 @@
+# File: apps/examples/gpio_pc13/Kconfig
+
+config EXAMPLES_GPIO_PC13
+	tristate "GPIO PC13 control example"
+	default n
+	depends on DEV_GPIO
+	---help---
+		Enable the GPIO PC13 control example
+
+if EXAMPLES_GPIO_PC13
+
+config EXAMPLES_GPIO_PC13_PROGNAME
+	string "Program name"
+	default "gpio_pc13"
+	---help---
+		This is the name of the program that will be used when the NSH ELF
+		program is installed.
+
+config EXAMPLES_GPIO_PC13_PRIORITY
+	int "GPIO PC13 task priority"
+	default 100
+
+config EXAMPLES_GPIO_PC13_STACKSIZE
+	int "GPIO PC13 stack size"
+	default DEFAULT_TASK_STACKSIZE
+
+endif

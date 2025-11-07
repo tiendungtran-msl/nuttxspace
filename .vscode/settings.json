@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "chip.h": "c",
+        "gpio_driver.h": "c",
+        "gpio.h": "c",
+        "config.h": "c",
+        "pc13_control.h": "c",
+        "userled.h": "c",
+        "timer.h": "c",
+        "signal.h": "c",
+        "pthread.h": "c"
+    }
+}

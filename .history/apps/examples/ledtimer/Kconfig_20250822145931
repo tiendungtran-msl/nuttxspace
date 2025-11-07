@@ -1,0 +1,32 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_LEDTIMER
+	tristate "LED Timer example"
+	default n
+	depends on TIMER
+	---help---
+		Enable the Timer GPIO control example.
+		This example demonstrates how to use Timer1 to control GPIO PC13
+		with 1-second intervals on STM32F411-minimum board.
+
+if EXAMPLES_LEDTIMER
+
+config EXAMPLES_LEDTIMER_PROGNAME
+	string "Program name"
+	default "ledtimer"
+	---help---
+		This is the name of the program that will be used when the NSH ELF
+		program is installed.
+
+config EXAMPLES_LEDTIMER_PRIORITY
+	int "LED timer task priority"
+	default 100
+
+config EXAMPLES_LEDTIMER_STACKSIZE
+	int "LED timer stack size"
+	default DEFAULT_TASK_STACKSIZE
+
+endif

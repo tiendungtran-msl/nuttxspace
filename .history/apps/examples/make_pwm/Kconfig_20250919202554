@@ -1,0 +1,163 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_MAKE_MAKE_PWM
+	tristate "Make MAKE_PWM example"
+	default n
+	depends on PWM
+	---help---
+		Enable the Pulse width modulation (PWM) example
+
+if EXAMPLES_PWM
+
+config EXAMPLES_MAKE_PWM_DEVPATH
+	string "MAKE_PWM device path"
+	default "/dev/MAKE_PWM2"
+	---help---
+		The path to the MAKE_PWM device.  Default: /dev/MAKE_PWM0
+
+config EXAMPLES_MAKE_PWM_FREQUENCY
+	int "Default MAKE_PWM frequency"
+	default 100
+	---help---
+		The default MAKE_PWM frequency.  Default: 100 Hz
+
+config EXAMPLES_MAKE_PWM_DURATION
+	int "Default MAKE_PWM duration"
+	default 5
+	---help---
+		The default MAKE_PWM pulse train duration in seconds.  Used only if the current
+		pulse count is zero (pulse count is only supported if MAKE_PWM_PULSECOUNT
+		is not defined).  Default: 5 seconds
+
+if MAKE_PWM_MULTICHAN
+
+config EXAMPLES_MAKE_PWM_DUTYPCT1
+	int "First MAKE_PWM duty percentage"
+	default 50
+	range 1 99
+	---help---
+		The first MAKE_PWM duty as a percentage.  Default: 50%
+
+config EXAMPLES_MAKE_PWM_CHANNEL1
+	int "First MAKE_PWM channel number"
+	default 1
+	range -1 6
+	---help---
+		The first MAKE_PWM channel number.  Default: 1
+
+if MAKE_PWM_NCHANNELS = 2 || MAKE_PWM_NCHANNELS = 3 || MAKE_PWM_NCHANNELS = 4 || MAKE_PWM_NCHANNELS = 5 || MAKE_PWM_NCHANNELS = 6
+
+config EXAMPLES_MAKE_PWM_DUTYPCT2
+	int "Second MAKE_PWM duty percentage"
+	default 50
+	range 1 99
+	---help---
+		The second MAKE_PWM duty as a percentage.  Default: 50%
+
+config EXAMPLES_MAKE_PWM_CHANNEL2
+	int "Second MAKE_PWM channel number"
+	default 2
+	range -1 6
+	---help---
+		The second MAKE_PWM channel number.  Default: 2
+
+endif
+
+if MAKE_PWM_NCHANNELS = 3 || MAKE_PWM_NCHANNELS = 4 || MAKE_PWM_NCHANNELS = 5 || MAKE_PWM_NCHANNELS = 6
+
+config EXAMPLES_MAKE_PWM_DUTYPCT3
+	int "Third MAKE_PWM duty percentage"
+	default 50
+	range 1 99
+	---help---
+		The third MAKE_PWM duty as a percentage.  Default: 50%
+
+config EXAMPLES_MAKE_PWM_CHANNEL3
+	int "Third MAKE_PWM channel number"
+	default 3
+	range -1 6
+	---help---
+		The third MAKE_PWM channel number.  Default: 3
+
+endif
+
+if MAKE_PWM_NCHANNELS = 4 || MAKE_PWM_NCHANNELS = 5 || MAKE_PWM_NCHANNELS = 6
+
+config EXAMPLES_MAKE_PWM_DUTYPCT4
+	int "Fourth MAKE_PWM duty percentage"
+	default 50
+	range 1 99
+	---help---
+		The fourth MAKE_PWM duty as a percentage.  Default: 50%
+
+config EXAMPLES_MAKE_PWM_CHANNEL4
+	int "Fourth MAKE_PWM channel number"
+	default 4
+	range -1 6
+	---help---
+		The fourth MAKE_PWM channel number.  Default: 4
+
+endif
+
+if MAKE_PWM_NCHANNELS = 5 || MAKE_PWM_NCHANNELS = 6
+
+config EXAMPLES_MAKE_PWM_DUTYPCT5
+	int "Fifth MAKE_PWM duty percentage"
+	default 50
+	range 1 99
+	---help---
+		The fifth MAKE_PWM duty as a percentage.  Default: 50%
+
+config EXAMPLES_MAKE_PWM_CHANNEL5
+	int "Fifth MAKE_PWM channel number"
+	default 5
+	range -1 6
+	---help---
+		The fifth MAKE_PWM channel number.  Default: 5
+
+endif
+
+if MAKE_PWM_NCHANNELS = 6
+
+config EXAMPLES_MAKE_PWM_DUTYPCT6
+	int "Sixth MAKE_PWM duty percentage"
+	default 50
+	range 1 99
+	---help---
+		The sixth MAKE_PWM duty as a percentage.  Default: 50%
+
+config EXAMPLES_MAKE_PWM_CHANNEL6
+	int "Sixth MAKE_PWM channel number"
+	default 6
+	range -1 6
+	---help---
+		The sixth MAKE_PWM channel number.  Default: 6
+
+endif
+
+endif
+
+if !MAKE_PWM_MULTICHAN
+
+config EXAMPLES_MAKE_PWM_DUTYPCT
+	int "Default MAKE_PWM duty percentage"
+	default 50
+	range 1 99
+	---help---
+		The default MAKE_PWM duty as a percentage.  Default: 50%
+
+config EXAMPLES_MAKE_PWM_PULSECOUNT
+	int "Default pulse count"
+	default 0
+	depends on MAKE_PWM_PULSECOUNT
+	---help---
+		The initial MAKE_PWM pulse count.  This option is only available if
+		MAKE_PWM_PULSECOUNT is defined.  Default: 0 (i.e., use the duration, not
+		the count).
+
+endif
+
+endif

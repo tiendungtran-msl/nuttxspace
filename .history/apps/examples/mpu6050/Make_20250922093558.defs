@@ -1,0 +1,3 @@
+ifneq ($(CONFIG_EXAMPLES_MQTTC),)
+CONFIGURED_APPS += $(APPDIR)/examples/mqttc
+endif

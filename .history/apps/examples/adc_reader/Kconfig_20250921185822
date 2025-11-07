@@ -1,0 +1,22 @@
+config EXAMPLES_ADC_READER
+	tristate "ADC Reader example"
+	default n
+	depends on ADC
+	---help---
+		Enable the ADC reader example
+
+if EXAMPLES_ADC_READER
+
+config EXAMPLES_ADC_READER_PROGNAME
+	string "Program name"
+	default "adc_reader"
+
+config EXAMPLES_ADC_READER_PRIORITY
+	int "ADC reader task priority"
+	default 100
+
+config EXAMPLES_ADC_READER_STACKSIZE
+	int "ADC reader stack size"
+	default 2048
+
+endif

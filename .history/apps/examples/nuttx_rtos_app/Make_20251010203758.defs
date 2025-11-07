@@ -1,0 +1,3 @@
+ifneq ($(CONFIG_EXAMPLES_MPU6050),)
+CONFIGURED_APPS += $(APPDIR)/examples/mpu6050
+endif

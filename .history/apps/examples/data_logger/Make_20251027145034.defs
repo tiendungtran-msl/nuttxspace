@@ -1,0 +1,3 @@
+ifneq ($(DATA_LOGGER),)
+CONFIGURED_APPS += $(APPDIR)/examples/dac
+endif

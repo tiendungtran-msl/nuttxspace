@@ -1,0 +1,35 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_NUTTX_RTOS_APP
+	tristate "NuttX RTOS Application for STM32F411"
+	default n
+	depends on STM32_STM32F411
+	---help---
+		Enable the NuttX RTOS application for STM32F411-Minimum board.
+		This application demonstrates multi-task RTOS programming with:
+		- LED blinking task
+		- ADC reading task
+		- PWM output task (controlled by ADC)
+		- MPU6050 sensor reading task
+
+if EXAMPLES_NUTTX_RTOS_APP
+
+config EXAMPLES_NUTTX_RTOS_APP_PROGNAME
+	string "Program name"
+	default "nuttx_rtos_app"
+	---help---
+		This is the name of the program that will be used when the NSH ELF
+		program is installed.
+
+config EXAMPLES_NUTTX_RTOS_APP_PRIORITY
+	int "Task priority"
+	default 100
+
+config EXAMPLES_NUTTX_RTOS_APP_STACKSIZE
+	int "Stack size"
+	default DEFAULT_TASK_STACKSIZE
+
+endif

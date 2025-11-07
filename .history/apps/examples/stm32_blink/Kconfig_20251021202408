@@ -1,0 +1,29 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_STM32_BLINK
+	tristate "STM32F411 GPIO Blink and Hello World"
+	default n
+	---help---
+		Enable the STM32F411 GPIO blink and hello world example
+
+if EXAMPLES_STM32_BLINK
+
+config EXAMPLES_STM32_BLINK_PROGNAME
+	string "Program name"
+	default "stm32_blink"
+	---help---
+		This is the name of the program that will be used when the NSH ELF
+		program is installed.
+
+config EXAMPLES_STM32_BLINK_PRIORITY
+	int "STM32 Blink task priority"
+	default 100
+
+config EXAMPLES_STM32_BLINK_STACKSIZE
+	int "STM32 Blink stack size"
+	default DEFAULT_TASK_STACKSIZE
+
+endif

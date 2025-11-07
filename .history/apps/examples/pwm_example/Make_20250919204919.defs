@@ -1,0 +1,10 @@
+############################################################################
+# apps/examples/pwm_example/Make.defs
+#
+# PWM Example Application Make.defs
+#
+############################################################################
+
+ifneq ($(CONFIG_EXAMPLES_PWM_EXAMPLE),)
+CONFIGURED_APPS += $(APPDIR)/examples/pwm_example
+endif

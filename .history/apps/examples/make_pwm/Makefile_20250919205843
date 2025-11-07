@@ -1,0 +1,21 @@
+
+############################################################################
+# apps/examples/pwm_example/Makefile
+#
+# PWM Example Application Makefile
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# PWM Example Application
+
+PROGNAME = make_pwm
+PRIORITY = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_DEFAULT_TASK_STACKSIZE)
+MODULE = $(CONFIG_EXAMPLES_PWM_EXAMPLE)
+
+# Application source files
+MAINSRC = pwm_example_main.c
+
+include $(APPDIR)/Application.mk

@@ -1,0 +1,25 @@
+# apps/data_logger/Makefile
+
+include $(APPDIR)/Make.defs
+
+PROGNAME  = data_logger
+PRIORITY  = SCHED_PRIORITY_DEFAULT
+STACKSIZE = 4096
+MODULE    = $(CONFIG_DATA_LOGGER)
+
+MAINSRC = src/main.c
+
+CSRCS  = src/tasks/sensor_task.c
+CSRCS += src/tasks/filter_task.c
+CSRCS += src/tasks/storage_task.c
+CSRCS += src/tasks/comm_task.c
+CSRCS += src/tasks/display_task.c
+CSRCS += src/tasks/watchdog_task.c
+CSRCS
+# CSRCS += src/utils/logger.c
+# CSRCS += src/utils/ringbuffer.c
+CSRCS += src/ipc.c
+
+CFLAGS += -I$(CURDIR)/include
+
+include $(APPDIR)/Application.mk

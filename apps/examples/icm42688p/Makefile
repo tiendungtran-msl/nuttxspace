@@ -1,0 +1,13 @@
+include $(APPDIR)/Make.defs
+
+# ICM-42688-P Application
+
+PROGNAME  = icm42688p
+PRIORITY  = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_DEFAULT_TASK_STACKSIZE)
+MODULE    = $(CONFIG_EXAMPLES_ICM42688P)
+
+CSRCS = icm42688p_driver.c icm42688p_spi.c
+MAINSRC = icm42688p_main.c
+
+include $(APPDIR)/Application.mk

@@ -1,0 +1,34 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_MAKE_MAKE_PWM
+	tristate "Make MAKE_PWM example"
+	default n
+	depends on PWM
+	---help---
+		Enable the Pulse width modulation (PWM) example
+
+if EXAMPLES_MAKE_PWM
+
+config EXAMPLES_MAKE_PWM_DEVPATH
+	string "MAKE_PWM device path"
+	default "/dev/MAKE_PWM2"
+	---help---
+		The path to the MAKE_PWM device.  Default: /dev/MAKE_PWM0
+
+config EXAMPLES_MAKE_PWM_FREQUENCY
+	int "Default MAKE_PWM frequency"
+	default 100
+	---help---
+		The default MAKE_PWM frequency.  Default: 100 Hz
+
+config EXAMPLES_MAKE_PWM_DURATION
+	int "Default MAKE_PWM duration"
+	default 5
+	---help---
+		The default MAKE_PWM pulse train duration in seconds.  Used only if the current
+		pulse count is zero (pulse count is only supported if MAKE_PWM_PULSECOUNT
+		is not defined).  Default: 5 seconds
+endif

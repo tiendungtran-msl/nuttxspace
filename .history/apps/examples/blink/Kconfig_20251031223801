@@ -1,0 +1,22 @@
+config EXAMPLES_BLINK
+	tristate "LED Blink Example"
+	default n
+	depends on DEV_GPIO
+	---help---
+		Simple LED blink application
+
+if EXAMPLES_BLINK
+
+config EXAMPLES_BLINK_PROGNAME
+	string "Program name"
+	default "blink"
+
+config EXAMPLES_BLINK_PRIORITY
+	int "Task priority"
+	default 100
+
+config EXAMPLES_BLINK_STACKSIZE
+	int "Stack size"
+	default DEFAULT_TASK_STACKSIZE
+
+endif

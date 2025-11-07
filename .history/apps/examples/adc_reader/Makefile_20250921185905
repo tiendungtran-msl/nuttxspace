@@ -1,0 +1,14 @@
+include $(APPDIR)/Make.defs
+
+# ADC Reader built-in application info
+PROGNAME = $(CONFIG_EXAMPLES_ADC_READER_PROGNAME)
+PRIORITY = $(CONFIG_EXAMPLES_ADC_READER_PRIORITY)
+STACKSIZE = $(CONFIG_EXAMPLES_ADC_READER_STACKSIZE)
+MODULE = $(CONFIG_EXAMPLES_ADC_READER)
+
+# ADC Reader Example
+MAINSRC = adc_reader_main.c
+
+include $(APPDIR)/Application.mk
+
+maked

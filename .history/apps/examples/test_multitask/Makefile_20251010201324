@@ -1,0 +1,15 @@
+include $(APPDIR)/Make.defs
+
+PROGNAME  = stm32_multitask
+PRIORITY  = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_DEFAULT_TASK_STACKSIZE)
+MODULE    = $(CONFIG_EXAMPLES_STM32_MULTITASK)
+
+MAINSRC = stm32_multitask_main.c
+
+CSRCS  = task_led.c
+CSRCS += task_adc.c
+CSRCS += task_pwm.c
+CSRCS += task_mpu6050.c
+
+include $(APPDIR)/Application.mk

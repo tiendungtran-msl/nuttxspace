@@ -1,0 +1,16 @@
+include $(APPDIR)/Make.defs
+
+# PC13 Control Application
+
+PROGNAME  = $(CONFIG_EXAMPLES_PC13LED_PROGNAME)
+PRIORITY  = $(CONFIG_EXAMPLES_PC13LED_PRIORITY)
+STACKSIZE = $(CONFIG_EXAMPLES_PC13_CONTROL_STACKSIZE)
+MODULE    = $(CONFIG_EXAMPLES_PC13_CONTROL)
+
+# Source files
+CSRCS = src/main.c src/gpio_driver.c src/commands.c src/utils.c
+
+# Include directories
+CFLAGS += -I$(CURDIR)/include
+
+include $(APPDIR)/Application.mk

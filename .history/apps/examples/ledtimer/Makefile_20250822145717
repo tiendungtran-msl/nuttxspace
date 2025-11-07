@@ -1,0 +1,21 @@
+############################################################################
+# apps/examples/timer_gpio/Makefile
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# Timer GPIO control application info
+
+PROGNAME = timer_gpio
+PRIORITY = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_DEFAULT_TASK_STACKSIZE)
+MODULE = $(CONFIG_EXAMPLES_TIMER_GPIO)
+
+# Application source files
+
+ASRCS =
+CSRCS =
+MAINSRC = timer_gpio_main.c
+
+include $(APPDIR)/Application.mk

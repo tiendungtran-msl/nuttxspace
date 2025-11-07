@@ -1,0 +1,29 @@
+############################################################################
+# examples/stm32_gpio_control/Makefile
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# STM32 GPIO Control Example
+
+PROGNAME  = $(CONFIG_EXAMPLES_STM32_GPIO_CONTROL_PROGNAME)
+PRIORITY  = $(CONFIG_EXAMPLES_STM32_GPIO_CONTROL_PRIORITY)
+STACKSIZE = $(CONFIG_EXAMPLES_STM32_GPIO_CONTROL_STACKSIZE)
+MODULE    = $(CONFIG_EXAMPLES_STM32_GPIO_CONTROL)
+
+# Application entry point
+MAINSRC = stm32_gpio_control_main.c
+
+# Source files
+CSRCS = src/gpio_hal.c src/gpio_driver.c src/app_logic.c
+
+# Always include board setup files  
+CSRCS += board_setup/stm32f411_gpio_setup.c
+
+# Include paths
+CFLAGS += -Iinclude
+
+include $(APPDIR)/Application.mk

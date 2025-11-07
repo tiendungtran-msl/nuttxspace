@@ -1,0 +1,30 @@
+############################################################################
+# File cấu hình Kconfig
+# Đặt file này trong apps/examples/mpu6050/Kconfig
+############################################################################
+
+# config EXAMPLES_MPU6050
+#     tristate "MPU6050 Pitch/Roll measurement example"
+#     default n
+#     depends on I2C
+#     ---help---
+#         Enable the MPU6050 pitch/roll measurement example
+
+# if EXAMPLES_MPU6050
+
+# config EXAMPLES_MPU6050_PROGNAME
+#     string "Program name"
+#     default "mpu6050_app"
+#     ---help---
+#         This is the name of the program that will be used when the NSH ELF
+#         program is installed.
+
+# config EXAMPLES_MPU6050_PRIORITY
+#     int "MPU6050 task priority"
+#     default 100
+
+# config EXAMPLES_MPU6050_STACKSIZE
+#     int "MPU6050 stack size"
+#     default DEFAULT_TASK_STACKSIZE
+
+# endif

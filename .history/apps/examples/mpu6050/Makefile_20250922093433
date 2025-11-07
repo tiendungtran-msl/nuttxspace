@@ -1,0 +1,19 @@
+# Makefile cho ứng dụng MPU6050
+# Đặt file này trong thư mục apps/examples/mpu6050/
+
+############################################################################
+# apps/examples/mpu6050/Makefile
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# Tên ứng dụng
+PROGNAME = mpu6050_app
+PRIORITY = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_DEFAULT_TASK_STACKSIZE)
+MODULE = $(CONFIG_EXAMPLES_MPU6050)
+
+# Các file nguồn
+MAINSRC = mpu6050_main.c
+
+include $(APPDIR)/Application.mk

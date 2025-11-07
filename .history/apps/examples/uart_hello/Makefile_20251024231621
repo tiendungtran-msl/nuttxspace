@@ -1,0 +1,21 @@
+############################################################################
+# apps/examples/uart_hello/Makefile
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# UART Hello World Example
+
+PROGNAME  = $(CONFIG_EXAMPLES_UART_HELLO_PROGNAME)
+PRIORITY  = $(CONFIG_EXAMPLES_UART_HELLO_PRIORITY)
+STACKSIZE = $(CONFIG_EXAMPLES_UART_HELLO_STACKSIZE)
+MODULE    = $(CONFIG_EXAMPLES_UART_HELLO)
+
+# Source files
+
+MAINSRC = uart_hello_main.c
+
+include $(APPDIR)/Application.mk

@@ -1,0 +1,3 @@
+ifneq ($(CONFIG_EXAMPLES_PC13_CONTROL),)
+CONFIGURED_APPS += $(APPDIR)/examples/pc13_control
+endif

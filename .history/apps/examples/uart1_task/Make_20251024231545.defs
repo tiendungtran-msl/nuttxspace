@@ -1,0 +1,10 @@
+############################################################################
+# apps/examples/uart_hello/Make.defs
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+############################################################################
+
+ifneq ($(CONFIG_EXAMPLES_UART_HELLO),)
+CONFIGURED_APPS += $(APPDIR)/examples/uart_hello
+endif

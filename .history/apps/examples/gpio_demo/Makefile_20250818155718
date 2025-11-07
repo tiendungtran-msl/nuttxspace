@@ -1,0 +1,14 @@
+# Makefile cho app gpio_demo
+
+# Lấy config từ NuttX
+-include $(TOPDIR)/Make.defs
+
+APPNAME = gpio_demo
+PRIORITY = SCHED_PRIORITY_DEFAULT
+STACKSIZE = 2048
+
+# File nguồn
+CSRCS = gpio_demo_main.c
+
+# Rule build
+include $(APPDIR)/Application.mk
