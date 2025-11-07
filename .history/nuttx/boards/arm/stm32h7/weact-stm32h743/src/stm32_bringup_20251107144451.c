@@ -103,7 +103,7 @@ int stm32_bringup(void)
       spi_icm = board_spi1_icm_get_device(i);
       if (spi_icm != NULL)
         {
-          snprintf(devname, sizeof(devname), "/dev/spi%d", i);
+          snprintf(devname, sizeof(devname), "/dev/spi1.%d", i);
           ret = spi_register(spi_icm, i);
           if (ret >= 0)
             {

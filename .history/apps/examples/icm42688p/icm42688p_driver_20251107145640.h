@@ -37,7 +37,7 @@ typedef struct {
 
 typedef struct {
     int spi_fd;
-    uint8_t sensor_id;
+        uint8_t sensor_id;
     uint8_t current_bank;
     
     /* Calibration */

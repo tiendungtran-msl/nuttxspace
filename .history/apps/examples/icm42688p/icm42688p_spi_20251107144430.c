@@ -17,8 +17,12 @@
 #include "icm42688p_registers.h"
 #include "icm42688p_driver.h"
 
-/* External function from board code */
-extern void board_spi1_icm_select(uint8_t id, bool selected);
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define ICM42688P_SPI_MODE       SPIDEV_MODE3
+#define ICM42688P_SPI_FREQUENCY  10000000  /* 10 MHz */
 
 /****************************************************************************
  * Public Functions
@@ -29,8 +33,10 @@ int icm42688p_spi_init(int bus, int devid)
     char devpath[32];
     int fd;
 
-    /* Open /dev/spi1 */
-    snprintf(devpath, sizeof(devpath), "/dev/spi%d", bus);
+    /* Construct device path based on bus and devid
+     * For multiple sensors, use /dev/spi1.0, /dev/spi1.1, etc.
+     */
+    snprintf(devpath, sizeof(devpath), "/dev/spi%d.%d", bus, devid);
     
     fd = open(devpath, O_RDWR);
     if (fd < 0)
@@ -39,9 +45,7 @@ int icm42688p_spi_init(int bus, int devid)
         return -errno;
     }
 
-    sninfo("SPI device %s opened (fd=%d) for sensor %d\n", 
-           devpath, fd, devid);
-    
+    sninfo("SPI device %s opened successfully (fd=%d)\n", devpath, fd);
     return fd;
 }
 
@@ -53,12 +57,7 @@ void icm42688p_spi_deinit(int fd)
     }
 }
 
-void icm42688p_cs_select(int devid, bool selected)
-{
-    board_spi1_icm_select(devid, selected);
-}
-
-int icm42688p_write_register(int fd, int devid, uint8_t reg, uint8_t value)
+int icm42688p_write_register(int fd, uint8_t reg, uint8_t value)
 {
     int ret;
     uint8_t tx[2];
@@ -68,13 +67,9 @@ int icm42688p_write_register(int fd, int devid, uint8_t reg, uint8_t value)
     tx[0] = reg & 0x7F;  /* Clear read bit for write */
     tx[1] = value;
 
-    /* Manual CS control */
-    icm42688p_cs_select(devid, true);
-    usleep(1);  /* Small delay */
-
     struct spi_trans_s trans =
     {
-        .deselect = false,  /* Manual CS control */
+        .deselect = true,
         .delay    = 0,
         .nwords   = 2,
         .txbuffer = tx,
@@ -88,10 +83,6 @@ int icm42688p_write_register(int fd, int devid, uint8_t reg, uint8_t value)
     };
 
     ret = ioctl(fd, SPIIOC_TRANSFER, (unsigned long)&seq);
-    
-    usleep(1);  /* Small delay */
-    icm42688p_cs_select(devid, false);
-
     if (ret < 0)
     {
         snerr("ERROR: SPI write failed: %s\n", strerror(errno));
@@ -101,7 +92,7 @@ int icm42688p_write_register(int fd, int devid, uint8_t reg, uint8_t value)
     return OK;
 }
 
-int icm42688p_read_register(int fd, int devid, uint8_t reg, uint8_t *value)
+int icm42688p_read_register(int fd, uint8_t reg, uint8_t *value)
 {
     int ret;
     uint8_t tx[2];
@@ -116,13 +107,9 @@ int icm42688p_read_register(int fd, int devid, uint8_t reg, uint8_t *value)
     memset(tx, 0xff, sizeof(tx));
     tx[0] = reg | SPI_READ_BIT;
 
-    /* Manual CS control */
-    icm42688p_cs_select(devid, true);
-    usleep(1);
-
     struct spi_trans_s trans =
     {
-        .deselect = false,
+        .deselect = true,
         .delay    = 0,
         .nwords   = 2,
         .txbuffer = tx,
@@ -136,10 +123,6 @@ int icm42688p_read_register(int fd, int devid, uint8_t reg, uint8_t *value)
     };
 
     ret = ioctl(fd, SPIIOC_TRANSFER, (unsigned long)&seq);
-    
-    usleep(1);
-    icm42688p_cs_select(devid, false);
-
     if (ret < 0)
     {
         snerr("ERROR: SPI read failed: %s\n", strerror(errno));
@@ -150,8 +133,7 @@ int icm42688p_read_register(int fd, int devid, uint8_t reg, uint8_t *value)
     return OK;
 }
 
-int icm42688p_read_registers(int fd, int devid, uint8_t reg, 
-                             uint8_t *buffer, size_t len)
+int icm42688p_read_registers(int fd, uint8_t reg, uint8_t *buffer, size_t len)
 {
     int ret;
     size_t i;
@@ -180,13 +162,9 @@ int icm42688p_read_registers(int fd, int devid, uint8_t reg,
         tx[i] = 0xFF;
     }
 
-    /* Manual CS control */
-    icm42688p_cs_select(devid, true);
-    usleep(1);
-
     struct spi_trans_s trans =
     {
-        .deselect = false,
+        .deselect = true,
         .delay    = 0,
         .nwords   = (unsigned int)(len + 1),
         .txbuffer = tx,
@@ -200,10 +178,6 @@ int icm42688p_read_registers(int fd, int devid, uint8_t reg,
     };
 
     ret = ioctl(fd, SPIIOC_TRANSFER, (unsigned long)&seq);
-    
-    usleep(1);
-    icm42688p_cs_select(devid, false);
-
     if (ret < 0)
     {
         snerr("ERROR: SPI burst read failed: %s\n", strerror(errno));
@@ -223,8 +197,7 @@ int icm42688p_read_registers(int fd, int devid, uint8_t reg,
     return OK;
 }
 
-int icm42688p_select_bank(int fd, int devid, uint8_t bank)
+int icm42688p_select_bank(int fd, uint8_t bank)
 {
-    return icm42688p_write_register(fd, devid, ICM42688P_REG_BANK_SEL, 
-                                     bank & 0x07);
+    return icm42688p_write_register(fd, ICM42688P_REG_BANK_SEL, bank & 0x07);
 }

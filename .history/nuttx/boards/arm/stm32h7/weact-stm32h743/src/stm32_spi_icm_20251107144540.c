@@ -85,10 +85,8 @@ static struct icm42688p_spi_wrapper_s g_icm_wrappers[NUM_ICM42688P];
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
 /* Forward declaration to avoid implicit declaration warning */
 void board_spi1_icm_select(uint8_t id, bool selected);
-
 /****************************************************************************
  * Name: icm_spi_lock
  ****************************************************************************/

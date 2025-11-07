@@ -50,7 +50,7 @@ int icm42688p_initialize(icm42688p_dev_t *dev)
 
     memset(dev, 0, sizeof(icm42688p_dev_t));
     
-    /* Set sensor ID - default to 0 */
+    /* Set sensor ID - default to 0, can be changed by caller */
     dev->sensor_id = ICM42688P_SPI_DEVID;
 
     /* Open SPI device */
@@ -60,7 +60,6 @@ int icm42688p_initialize(icm42688p_dev_t *dev)
         return dev->spi_fd;
     }
 
-    /* Wait for power-on */
     usleep(100000);  /* 100ms */
 
     /* Verify WHO_AM_I */
@@ -84,13 +83,12 @@ int icm42688p_initialize(icm42688p_dev_t *dev)
 
     sninfo("ICM-42688-P detected (WHO_AM_I=0x%02x)\n", who_am_i);
 
-    /* Reset device */
+    /* Reset and configure */
     ret = icm42688p_reset(dev);
     if (ret < 0) {
         goto errout;
     }
 
-    /* Configure device */
     ret = icm42688p_configure(dev);
     if (ret < 0) {
         goto errout;
@@ -118,11 +116,10 @@ int icm42688p_reset(icm42688p_dev_t *dev)
 {
     int ret;
 
-    /* Soft reset */
     ret = icm42688p_select_bank(dev->spi_fd, dev->sensor_id, BANK_0);
     if (ret < 0) return ret;
 
-    ret = icm42688p_write_register(dev->spi_fd, dev->sensor_id,
+    ret = icm42688p_write_register(dev->spi_fd, dev->sensor_id, 
                                     ICM42688P_DEVICE_CONFIG, 0x01);
     if (ret < 0) {
         snerr("ERROR: Soft reset failed\n");
@@ -141,12 +138,11 @@ int icm42688p_configure(icm42688p_dev_t *dev)
     int ret;
 
     /* Select Bank 0 */
-    ret = icm42688p_select_bank(dev->spi_fd, dev->sensor_id, BANK_0);
+    ret = icm42688p_select_bank(dev->spi_fd, BANK_0);
     if (ret < 0) return ret;
 
     /* Configure Power Management - Enable Gyro and Accel in Low Noise mode */
-    ret = icm42688p_write_register(dev->spi_fd, dev->sensor_id,
-                                    ICM42688P_PWR_MGMT0,
+    ret = icm42688p_write_register(dev->spi_fd, ICM42688P_PWR_MGMT0,
                                     PWR_MGMT0_GYRO_MODE_LN | PWR_MGMT0_ACCEL_MODE_LN);
     if (ret < 0) {
         snerr("ERROR: Failed to configure power management\n");
@@ -159,8 +155,7 @@ int icm42688p_configure(icm42688p_dev_t *dev)
     dev->gyro_fs = GYRO_CONFIG0_FS_SEL_2000DPS;
     dev->gyro_sensitivity = GYRO_SENSITIVITY_2000DPS;
     
-    ret = icm42688p_write_register(dev->spi_fd, dev->sensor_id,
-                                    ICM42688P_GYRO_CONFIG0,
+    ret = icm42688p_write_register(dev->spi_fd, ICM42688P_GYRO_CONFIG0,
                                     dev->gyro_fs | GYRO_CONFIG0_ODR_1KHZ);
     if (ret < 0) {
         snerr("ERROR: Failed to configure gyroscope\n");
@@ -171,8 +166,7 @@ int icm42688p_configure(icm42688p_dev_t *dev)
     dev->accel_fs = ACCEL_CONFIG0_FS_SEL_16G;
     dev->accel_sensitivity = ACCEL_SENSITIVITY_16G;
     
-    ret = icm42688p_write_register(dev->spi_fd, dev->sensor_id,
-                                    ICM42688P_ACCEL_CONFIG0,
+    ret = icm42688p_write_register(dev->spi_fd, ICM42688P_ACCEL_CONFIG0,
                                     dev->accel_fs | ACCEL_CONFIG0_ODR_1KHZ);
     if (ret < 0) {
         snerr("ERROR: Failed to configure accelerometer\n");
@@ -180,8 +174,7 @@ int icm42688p_configure(icm42688p_dev_t *dev)
     }
 
     /* Configure filter bandwidth (optional) */
-    ret = icm42688p_write_register(dev->spi_fd, dev->sensor_id,
-                                    ICM42688P_GYRO_ACCEL_CONFIG0, 0x44);
+    ret = icm42688p_write_register(dev->spi_fd, ICM42688P_GYRO_ACCEL_CONFIG0, 0x44);
     if (ret < 0) {
         snerr("ERROR: Failed to configure filters\n");
         return ret;
@@ -205,12 +198,11 @@ int icm42688p_read_data(icm42688p_dev_t *dev, icm42688p_data_t *data)
     }
 
     /* Select Bank 0 */
-    ret = icm42688p_select_bank(dev->spi_fd, dev->sensor_id, BANK_0);
+    ret = icm42688p_select_bank(dev->spi_fd, BANK_0);
     if (ret < 0) return ret;
 
     /* Burst read all sensor data */
-    ret = icm42688p_read_registers(dev->spi_fd, dev->sensor_id,
-                                    ICM42688P_TEMP_DATA1, buffer, 14);
+    ret = icm42688p_read_registers(dev->spi_fd, ICM42688P_TEMP_DATA1, buffer, 14);
     if (ret < 0) {
         dev->error_count++;
         return ret;
@@ -285,7 +277,6 @@ void icm42688p_print_status(icm42688p_dev_t *dev)
     }
 
     printf("\n=== ICM-42688-P Status ===\n");
-    printf("Sensor ID:     %d\n", dev->sensor_id);
     printf("Samples read:  %lu\n", (unsigned long)dev->sample_count);
     printf("Errors:        %lu\n", (unsigned long)dev->error_count);
     printf("Gyro range:    ±2000 dps\n");
