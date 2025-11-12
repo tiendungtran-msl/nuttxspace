@@ -1,0 +1,3 @@
+ifneq ($(CONFIG_EXAMPLES_IMU_SYSTEM),)
+CONFIGURED_APPS += $(APPDIR)/examples/imu_system
+endif

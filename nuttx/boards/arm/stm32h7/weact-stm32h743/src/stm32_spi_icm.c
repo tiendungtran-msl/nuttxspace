@@ -40,6 +40,11 @@
 #define GPIO_SPI1_CS_ICM3    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
                               GPIO_OUTPUT | GPIO_PORTD | GPIO_PIN13)
 
+/* GPIO Configuration for BMM150 CS pin */
+
+#define GPIO_SPI1_CS_BMM150  (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                              GPIO_OUTPUT | GPIO_PORTD | GPIO_PIN14)
+
 /* SPI Configuration for ICM42688P */
 
 #define ICM42688P_SPI_FREQUENCY     10000000  /* 10 MHz */
@@ -48,6 +53,7 @@
 /* Number of ICM42688P sensors */
 
 #define NUM_ICM42688P               4
+#define NUM_TOTAL_SENSORS           5  /* 4 ICM + 1 BMM */
 
 /****************************************************************************
  * Private Types
@@ -265,7 +271,13 @@ void stm32_spidev_icm_initialize(void)
       _info("  ICM%d CS pin configured\n", i);
     }
 
-  _info("ICM42688P CS pins initialization completed\n");
+  /* Configure BMM150 CS pin */
+
+  stm32_configgpio(GPIO_SPI1_CS_BMM150);
+  stm32_gpiowrite(GPIO_SPI1_CS_BMM150, 1);
+  _info("  BMM150 CS pin configured\n");
+
+  _info("ICM42688P and BMM150 CS pins initialization completed\n");
 }
 
 /****************************************************************************
@@ -320,6 +332,26 @@ void board_spi1_icm_select(uint8_t id, bool selected)
   if (id < NUM_ICM42688P)
     {
       stm32_gpiowrite(g_icm_cs_pins[id], !selected);
+    }
+}
+
+/****************************************************************************
+ * Name: board_spi1_sensor_select
+ ****************************************************************************/
+
+void board_spi1_sensor_select(uint8_t id, bool selected)
+{
+  if (id < NUM_ICM42688P)
+    {
+      /* ICM42688P sensors (0-3) */
+
+      stm32_gpiowrite(g_icm_cs_pins[id], !selected);
+    }
+  else if (id == 4)
+    {
+      /* BMM150 magnetometer (4) */
+
+      stm32_gpiowrite(GPIO_SPI1_CS_BMM150, !selected);
     }
 }
 

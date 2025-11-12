@@ -66,6 +66,20 @@ int board_spi1_icm_initialize(void);
 void board_spi1_icm_select(uint8_t id, bool selected);
 
 /****************************************************************************
+ * Name: board_spi1_sensor_select
+ *
+ * Description:
+ *   Select/deselect sensor chip select (ICM42688P or BMM150)
+ *
+ * Input Parameters:
+ *   id       - Sensor ID (0-3: ICM42688P, 4: BMM150)
+ *   selected - true: assert CS (LOW), false: deassert CS (HIGH)
+ *
+ ****************************************************************************/
+
+void board_spi1_sensor_select(uint8_t id, bool selected);
+
+/****************************************************************************
  * Name: board_spi1_icm_get_handle
  *
  * Description:
