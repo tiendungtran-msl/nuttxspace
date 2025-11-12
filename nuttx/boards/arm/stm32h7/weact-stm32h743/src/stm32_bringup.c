@@ -51,6 +51,12 @@
 #  include <nuttx/spi/spi_transfer.h>
 #endif
 
+#ifdef CONFIG_STM32H7_I2C
+#  include "stm32_i2c.h"
+#  include <nuttx/i2c/i2c_master.h>
+#
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -122,6 +128,28 @@ int stm32_bringup(void)
       syslog(LOG_ERR, "ERROR: Failed to initialize GPIO LED: %d\n", ret);
     }
 #endif
+
+#ifdef CONFIG_STM32H7_I2C
+  struct i2c_master_s *i2c;
+  /* Khởi tạo I2C1 */
+  i2c = stm32_i2cbus_initialize(1); // Port I2C1
+  if (i2c == NULL)
+  {
+      /* Lỗi khởi tạo I2C1 */
+      printf("Failed to initialize i2c bus\n");
+      return -ENODEV;
+  }
+
+  /* Đăng ký device node /dev/i2c1 */
+  ret = i2c_register(i2c, 1);
+  if (ret < 0)
+  {
+      /* Lỗi đăng ký */
+      printf("Failed to register i2c\n");
+      stm32_i2cbus_uninitialize(i2c);
+      return ret;
+  }
+#endif /* CONFIG_STM32H7_I2C */
 
 #ifdef CONFIG_FS_PROCFS
   /* Mount the procfs file system */
