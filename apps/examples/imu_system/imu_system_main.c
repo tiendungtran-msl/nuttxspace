@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <debug.h>
 #include <pthread.h>
+#include <math.h>
 
 #include "drivers/spi/spi_manager.h"
 #include "drivers/icm42688p/icm42688p_driver.h"
@@ -28,6 +29,14 @@
 #include "tasks/tasks.h"
 #include "utils/data_queue.h"
 #include "utils/config.h"
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#ifndef M_PI
+#  define M_PI 3.14159265358979323846f
+#endif
 
 /****************************************************************************
  * Private Data

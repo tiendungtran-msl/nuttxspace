@@ -18,6 +18,10 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#ifndef M_PI
+#  define M_PI 3.14159265358979323846f
+#endif
+
 #define RAD_TO_DEG (180.0f / M_PI)
 #define DEG_TO_RAD (M_PI / 180.0f)
 

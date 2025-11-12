@@ -16,6 +16,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <debug.h>
+#include <math.h>
 #include <nuttx/clock.h>
 
 #include "icm42688p_driver.h"
