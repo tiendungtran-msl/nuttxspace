@@ -1,6 +1,7 @@
 config EXAMPLES_IMU_SYSTEM
 	tristate "IMU System with 4x ICM42688P + BMM150"
 	default n
+	depends on STM32H7_SPI1 && STM32H7_I2C1
 	---help---
 		Complete IMU system with sensor fusion:
 		- 4x ICM-42688-P (6-DOF IMU) via SPI1

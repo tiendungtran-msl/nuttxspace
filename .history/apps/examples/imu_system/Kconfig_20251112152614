@@ -2,12 +2,9 @@ config EXAMPLES_IMU_SYSTEM
 	tristate "IMU System with 4x ICM42688P + BMM150"
 	default n
 	---help---
-		Complete IMU system with sensor fusion:
-		- 4x ICM-42688-P (6-DOF IMU) via SPI1
-		- 1x BMM150 (Magnetometer) via I2C1 (PB6/PB7)
-		- LED status indicator on PC0
-		- Madgwick sensor fusion algorithm
-		- NuttX RTOS task-based architecture
+		Enable the complete IMU system application with 4x ICM42688P
+		IMU sensors, BMM150 magnetometer, LED status indication, and
+		9-DOF sensor fusion using Madgwick filter.
 
 if EXAMPLES_IMU_SYSTEM
 

@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps/examples/imu_system/drivers/bmm150/bmm150_driver.c
  *
- * BMM150 Magnetometer Driver Implementation (I2C Interface)
+ * BMM150 Magnetometer Driver Implementation
  *
  ****************************************************************************/
 
@@ -21,16 +21,8 @@
 
 #include "bmm150_driver.h"
 #include "bmm150_regs.h"
-#include "../i2c/i2c_manager.h"
+#include "../spi/spi_manager.h"
 #include "../../utils/config.h"
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#ifndef M_PI
-#  define M_PI 3.14159265358979323846f
-#endif
 
 /****************************************************************************
  * Private Types
@@ -61,8 +53,6 @@ typedef struct
   float scale_x;
   float scale_y;
   float scale_z;
-  uint32_t read_count;
-  uint32_t error_count;
 } bmm150_dev_state_t;
 
 /****************************************************************************
@@ -75,129 +65,62 @@ static bmm150_dev_state_t g_bmm150;
  * Private Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: read_trim_registers
- *
- * Description:
- *   Read factory trim/compensation data from BMM150
- ****************************************************************************/
-
 static int read_trim_registers(void)
 {
   uint8_t data[2];
   int ret;
 
-  /* Read all trim registers */
-
-  ret = i2c_manager_read_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_DIG_X1,
+  ret = spi_manager_read_reg(IMU_BMM150_DEVID, BMM150_REG_DIG_X1,
                               (uint8_t *)&g_bmm150.trim.dig_x1);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to read DIG_X1: %d\n", ret);
-      return ret;
-    }
+  if (ret < 0) return ret;
 
-  ret = i2c_manager_read_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_DIG_Y1,
+  ret = spi_manager_read_reg(IMU_BMM150_DEVID, BMM150_REG_DIG_Y1,
                               (uint8_t *)&g_bmm150.trim.dig_y1);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to read DIG_Y1: %d\n", ret);
-      return ret;
-    }
+  if (ret < 0) return ret;
 
-  ret = i2c_manager_read_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_DIG_X2,
+  ret = spi_manager_read_reg(IMU_BMM150_DEVID, BMM150_REG_DIG_X2,
                               (uint8_t *)&g_bmm150.trim.dig_x2);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to read DIG_X2: %d\n", ret);
-      return ret;
-    }
+  if (ret < 0) return ret;
 
-  ret = i2c_manager_read_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_DIG_Y2,
+  ret = spi_manager_read_reg(IMU_BMM150_DEVID, BMM150_REG_DIG_Y2,
                               (uint8_t *)&g_bmm150.trim.dig_y2);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to read DIG_Y2: %d\n", ret);
-      return ret;
-    }
+  if (ret < 0) return ret;
 
-  ret = i2c_manager_read_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_DIG_XY1,
+  ret = spi_manager_read_reg(IMU_BMM150_DEVID, BMM150_REG_DIG_XY1,
                               &g_bmm150.trim.dig_xy1);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to read DIG_XY1: %d\n", ret);
-      return ret;
-    }
+  if (ret < 0) return ret;
 
-  ret = i2c_manager_read_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_DIG_XY2,
+  ret = spi_manager_read_reg(IMU_BMM150_DEVID, BMM150_REG_DIG_XY2,
                               (uint8_t *)&g_bmm150.trim.dig_xy2);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to read DIG_XY2: %d\n", ret);
-      return ret;
-    }
+  if (ret < 0) return ret;
 
-  /* Read 16-bit trim values */
-
-  ret = i2c_manager_read_regs(IMU_BMM150_I2C_ADDR, BMM150_REG_DIG_Z1_LSB,
+  ret = spi_manager_read_regs(IMU_BMM150_DEVID, BMM150_REG_DIG_Z1_LSB,
                                data, 2);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to read DIG_Z1: %d\n", ret);
-      return ret;
-    }
+  if (ret < 0) return ret;
   g_bmm150.trim.dig_z1 = (uint16_t)(data[0] | (data[1] << 8));
 
-  ret = i2c_manager_read_regs(IMU_BMM150_I2C_ADDR, BMM150_REG_DIG_Z2_LSB,
+  ret = spi_manager_read_regs(IMU_BMM150_DEVID, BMM150_REG_DIG_Z2_LSB,
                                data, 2);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to read DIG_Z2: %d\n", ret);
-      return ret;
-    }
+  if (ret < 0) return ret;
   g_bmm150.trim.dig_z2 = (int16_t)(data[0] | (data[1] << 8));
 
-  ret = i2c_manager_read_regs(IMU_BMM150_I2C_ADDR, BMM150_REG_DIG_Z3_LSB,
+  ret = spi_manager_read_regs(IMU_BMM150_DEVID, BMM150_REG_DIG_Z3_LSB,
                                data, 2);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to read DIG_Z3: %d\n", ret);
-      return ret;
-    }
+  if (ret < 0) return ret;
   g_bmm150.trim.dig_z3 = (int16_t)(data[0] | (data[1] << 8));
 
-  ret = i2c_manager_read_regs(IMU_BMM150_I2C_ADDR, BMM150_REG_DIG_Z4_LSB,
+  ret = spi_manager_read_regs(IMU_BMM150_DEVID, BMM150_REG_DIG_Z4_LSB,
                                data, 2);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to read DIG_Z4: %d\n", ret);
-      return ret;
-    }
+  if (ret < 0) return ret;
   g_bmm150.trim.dig_z4 = (int16_t)(data[0] | (data[1] << 8));
 
-  ret = i2c_manager_read_regs(IMU_BMM150_I2C_ADDR, BMM150_REG_DIG_XYZ1_LSB,
+  ret = spi_manager_read_regs(IMU_BMM150_DEVID, BMM150_REG_DIG_XYZ1_LSB,
                                data, 2);
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to read DIG_XYZ1: %d\n", ret);
-      return ret;
-    }
+  if (ret < 0) return ret;
   g_bmm150.trim.dig_xyz1 = (uint16_t)(data[0] | (data[1] << 8));
-
-  sninfo("BMM150 trim data loaded successfully\n");
-  sninfo("  dig_x1=%d, dig_y1=%d, dig_x2=%d, dig_y2=%d\n",
-         g_bmm150.trim.dig_x1, g_bmm150.trim.dig_y1,
-         g_bmm150.trim.dig_x2, g_bmm150.trim.dig_y2);
 
   return OK;
 }
-
-/****************************************************************************
- * Name: compensate_x
- *
- * Description:
- *   Apply temperature compensation for X-axis
- ****************************************************************************/
 
 static float compensate_x(int16_t mag_data_x, uint16_t data_rhall)
 {
@@ -238,13 +161,6 @@ static float compensate_x(int16_t mag_data_x, uint16_t data_rhall)
   return retval;
 }
 
-/****************************************************************************
- * Name: compensate_y
- *
- * Description:
- *   Apply temperature compensation for Y-axis
- ****************************************************************************/
-
 static float compensate_y(int16_t mag_data_y, uint16_t data_rhall)
 {
   float retval;
@@ -283,13 +199,6 @@ static float compensate_y(int16_t mag_data_y, uint16_t data_rhall)
 
   return retval;
 }
-
-/****************************************************************************
- * Name: compensate_z
- *
- * Description:
- *   Apply temperature compensation for Z-axis
- ****************************************************************************/
 
 static float compensate_z(int16_t mag_data_z, uint16_t data_rhall)
 {
@@ -337,9 +246,6 @@ static float compensate_z(int16_t mag_data_z, uint16_t data_rhall)
 
 /****************************************************************************
  * Name: bmm150_init
- *
- * Description:
- *   Initialize BMM150 magnetometer via I2C
  ****************************************************************************/
 
 int bmm150_init(void)
@@ -349,7 +255,6 @@ int bmm150_init(void)
 
   if (g_bmm150.initialized)
     {
-      snwarn("WARNING: BMM150 already initialized\n");
       return -EBUSY;
     }
 
@@ -361,52 +266,32 @@ int bmm150_init(void)
   g_bmm150.scale_y = 1.0f;
   g_bmm150.scale_z = 1.0f;
 
-  sninfo("Initializing BMM150 on I2C%d at address 0x%02x\n",
-         IMU_I2C_BUS, IMU_BMM150_I2C_ADDR);
-
   /* Read chip ID */
 
-  ret = i2c_manager_read_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_CHIP_ID,
+  ret = spi_manager_read_reg(IMU_BMM150_DEVID, BMM150_REG_CHIP_ID,
                               &chip_id);
   if (ret < 0)
     {
-      snerr("ERROR: Failed to read BMM150 chip ID via I2C: %d\n", ret);
-      snerr("       Check I2C connections (PB6=SCL, PB7=SDA)\n");
-      g_bmm150.error_count++;
+      snerr("ERROR: Failed to read BMM150 chip ID\n");
       return ret;
     }
 
   if (chip_id != BMM150_CHIP_ID)
     {
-      snerr("ERROR: Invalid BMM150 chip ID: 0x%02x (expected 0x%02x)\n",
-            chip_id, BMM150_CHIP_ID);
-      g_bmm150.error_count++;
+      snerr("ERROR: Invalid BMM150 chip ID: 0x%02x (expected 0x32)\n",
+            chip_id);
       return -ENODEV;
     }
 
   sninfo("BMM150 detected (CHIP_ID=0x%02x)\n", chip_id);
 
-  /* Soft reset */
-
-  ret = i2c_manager_write_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_PWR_CTRL,
-                               0x82);  /* Soft reset bit */
-  if (ret < 0)
-    {
-      snerr("ERROR: Failed to reset BMM150\n");
-      g_bmm150.error_count++;
-      return ret;
-    }
-
-  usleep(10000);  /* 10ms reset time */
-
   /* Power on */
 
-  ret = i2c_manager_write_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_PWR_CTRL,
+  ret = spi_manager_write_reg(IMU_BMM150_DEVID, BMM150_REG_PWR_CTRL,
                                BMM150_PWR_CTRL_POWER_ON);
   if (ret < 0)
     {
       snerr("ERROR: Failed to power on BMM150\n");
-      g_bmm150.error_count++;
       return ret;
     }
 
@@ -418,39 +303,33 @@ int bmm150_init(void)
   if (ret < 0)
     {
       snerr("ERROR: Failed to read trim registers\n");
-      g_bmm150.error_count++;
       return ret;
     }
 
   /* Set to normal mode with 25 Hz ODR */
 
-  ret = i2c_manager_write_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_OP_MODE,
+  ret = spi_manager_write_reg(IMU_BMM150_DEVID, BMM150_REG_OP_MODE,
                                BMM150_OP_MODE_NORMAL |
                                BMM150_DATA_RATE_25HZ);
   if (ret < 0)
     {
       snerr("ERROR: Failed to set operation mode\n");
-      g_bmm150.error_count++;
       return ret;
     }
 
   /* Set repetition for X/Y and Z */
 
-  ret = i2c_manager_write_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_REP_XY,
+  ret = spi_manager_write_reg(IMU_BMM150_DEVID, BMM150_REG_REP_XY,
                                BMM150_REP_XY_REGULAR);
   if (ret < 0)
     {
-      snerr("ERROR: Failed to set XY repetition\n");
-      g_bmm150.error_count++;
       return ret;
     }
 
-  ret = i2c_manager_write_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_REP_Z,
+  ret = spi_manager_write_reg(IMU_BMM150_DEVID, BMM150_REG_REP_Z,
                                BMM150_REP_Z_REGULAR);
   if (ret < 0)
     {
-      snerr("ERROR: Failed to set Z repetition\n");
-      g_bmm150.error_count++;
       return ret;
     }
 
@@ -458,42 +337,26 @@ int bmm150_init(void)
 
   g_bmm150.initialized = true;
 
-  sninfo("BMM150 initialized successfully via I2C\n");
-  sninfo("  Interface: I2C%d @ 400kHz\n", IMU_I2C_BUS);
-  sninfo("  Address: 0x%02x\n", IMU_BMM150_I2C_ADDR);
-  sninfo("  Mode: Normal, 25Hz ODR\n");
-
+  sninfo("BMM150 initialized successfully\n");
   return OK;
 }
 
 /****************************************************************************
  * Name: bmm150_deinit
- *
- * Description:
- *   Deinitialize BMM150 and put it to sleep mode
  ****************************************************************************/
 
 void bmm150_deinit(void)
 {
   if (g_bmm150.initialized)
     {
-      /* Put device to sleep mode */
-
-      i2c_manager_write_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_PWR_CTRL,
+      spi_manager_write_reg(IMU_BMM150_DEVID, BMM150_REG_PWR_CTRL,
                             BMM150_PWR_CTRL_POWER_OFF);
-
-      sninfo("BMM150 deinitialized (reads=%u, errors=%u)\n",
-             g_bmm150.read_count, g_bmm150.error_count);
-
       g_bmm150.initialized = false;
     }
 }
 
 /****************************************************************************
  * Name: bmm150_read
- *
- * Description:
- *   Read compensated magnetometer data
  ****************************************************************************/
 
 int bmm150_read(bmm150_data_t *data)
@@ -512,23 +375,19 @@ int bmm150_read(bmm150_data_t *data)
 
   if (!g_bmm150.initialized)
     {
-      snerr("ERROR: BMM150 not initialized\n");
       return -ENODEV;
     }
 
-  /* Read all data registers (0x42-0x49) */
+  /* Read all data registers */
 
-  ret = i2c_manager_read_regs(IMU_BMM150_I2C_ADDR, BMM150_REG_DATA_X_LSB,
+  ret = spi_manager_read_regs(IMU_BMM150_DEVID, BMM150_REG_DATA_X_LSB,
                                buffer, 8);
   if (ret < 0)
     {
-      snerr("ERROR: Failed to read BMM150 data: %d\n", ret);
-      g_bmm150.error_count++;
       return ret;
     }
 
-  /* Extract 13-bit values for X, Y (bits 15-3) */
-  /* Extract 15-bit value for Z (bits 15-1) */
+  /* Extract 13-bit values */
 
   raw_x = (int16_t)(((int16_t)((int8_t)buffer[1])) * 32) |
           ((buffer[0] & 0xF8) >> 3);
@@ -545,27 +404,19 @@ int bmm150_read(bmm150_data_t *data)
   data->y = compensate_y(raw_y, raw_rhall);
   data->z = compensate_z(raw_z, raw_rhall);
 
-  /* Apply user calibration (hard/soft iron) */
+  /* Apply calibration */
 
   data->x = (data->x - g_bmm150.offset_x) * g_bmm150.scale_x;
   data->y = (data->y - g_bmm150.offset_y) * g_bmm150.scale_y;
   data->z = (data->z - g_bmm150.offset_z) * g_bmm150.scale_z;
 
-  /* Timestamp in microseconds */
-
   data->timestamp = clock_systime_ticks() * (1000000 / CLK_TCK);
-
-  g_bmm150.read_count++;
 
   return OK;
 }
 
 /****************************************************************************
  * Name: bmm150_calibrate
- *
- * Description:
- *   Perform hard/soft iron calibration
- *   Requires rotating the sensor in all directions
  ****************************************************************************/
 
 int bmm150_calibrate(void)
@@ -585,23 +436,9 @@ int bmm150_calibrate(void)
       return -ENODEV;
     }
 
-  /* Reset calibration */
-
-  g_bmm150.offset_x = 0.0f;
-  g_bmm150.offset_y = 0.0f;
-  g_bmm150.offset_z = 0.0f;
-  g_bmm150.scale_x = 1.0f;
-  g_bmm150.scale_y = 1.0f;
-  g_bmm150.scale_z = 1.0f;
-
-  printf("\n");
-  printf("=================================================\n");
-  printf("      BMM150 Magnetometer Calibration\n");
-  printf("=================================================\n");
-  printf("Collecting %d samples...\n", IMU_MAG_CALIB_SAMPLES);
-  printf("ROTATE the sensor slowly in ALL DIRECTIONS!\n");
-  printf("(Figure-8 motion works best)\n");
-  printf("\n");
+  sninfo("Starting magnetometer calibration...\n");
+  sninfo("Rotate the sensor in all directions for %d samples\n",
+         IMU_MAG_CALIB_SAMPLES);
 
   /* Collect samples while rotating */
 
@@ -610,7 +447,7 @@ int bmm150_calibrate(void)
       ret = bmm150_read(&data);
       if (ret < 0)
         {
-          snerr("ERROR: Calibration read failed at sample %d\n", i);
+          snerr("ERROR: Calibration read failed\n");
           return ret;
         }
 
@@ -623,145 +460,27 @@ int bmm150_calibrate(void)
       if (data.z < min_z) min_z = data.z;
       if (data.z > max_z) max_z = data.z;
 
-      /* Progress indicator */
-
-      if ((i % 50) == 0)
-        {
-          printf("Progress: %3d%% [X: %6.1f-%6.1f, Y: %6.1f-%6.1f, "
-                 "Z: %6.1f-%6.1f]\n",
-                 (i * 100) / IMU_MAG_CALIB_SAMPLES,
-                 min_x, max_x, min_y, max_y, min_z, max_z);
-        }
-
       usleep(40000);  /* 40ms between samples (25 Hz) */
     }
 
-  /* Calculate hard iron offsets (center point) */
+  /* Calculate hard iron offsets and soft iron scale factors */
 
   g_bmm150.offset_x = (max_x + min_x) / 2.0f;
   g_bmm150.offset_y = (max_y + min_y) / 2.0f;
   g_bmm150.offset_z = (max_z + min_z) / 2.0f;
 
-  /* Calculate soft iron scale factors (normalize to sphere) */
-
   float avg_delta = ((max_x - min_x) + (max_y - min_y) +
                      (max_z - min_z)) / 3.0f;
 
-  if ((max_x - min_x) > 0.1f)
-    {
-      g_bmm150.scale_x = avg_delta / (max_x - min_x);
-    }
+  g_bmm150.scale_x = avg_delta / (max_x - min_x);
+  g_bmm150.scale_y = avg_delta / (max_y - min_y);
+  g_bmm150.scale_z = avg_delta / (max_z - min_z);
 
-  if ((max_y - min_y) > 0.1f)
-    {
-      g_bmm150.scale_y = avg_delta / (max_y - min_y);
-    }
-
-  if ((max_z - min_z) > 0.1f)
-    {
-      g_bmm150.scale_z = avg_delta / (max_z - min_z);
-    }
-
-  printf("\n");
-  printf("=================================================\n");
-  printf("      Calibration Complete!\n");
-  printf("=================================================\n");
-  printf("Hard Iron Offsets (uT):\n");
-  printf("  X: %7.2f\n", g_bmm150.offset_x);
-  printf("  Y: %7.2f\n", g_bmm150.offset_y);
-  printf("  Z: %7.2f\n", g_bmm150.offset_z);
-  printf("\n");
-  printf("Soft Iron Scale Factors:\n");
-  printf("  X: %6.4f\n", g_bmm150.scale_x);
-  printf("  Y: %6.4f\n", g_bmm150.scale_y);
-  printf("  Z: %6.4f\n", g_bmm150.scale_z);
-  printf("\n");
-  printf("Field Range (uT):\n");
-  printf("  X: %6.1f to %6.1f (delta: %6.1f)\n",
-         min_x, max_x, max_x - min_x);
-  printf("  Y: %6.1f to %6.1f (delta: %6.1f)\n",
-         min_y, max_y, max_y - min_y);
-  printf("  Z: %6.1f to %6.1f (delta: %6.1f)\n",
-         min_z, max_z, max_z - min_z);
-  printf("=================================================\n");
-  printf("\n");
+  sninfo("Magnetometer calibration complete:\n");
+  sninfo("  Offset: (%.2f, %.2f, %.2f)\n",
+         g_bmm150.offset_x, g_bmm150.offset_y, g_bmm150.offset_z);
+  sninfo("  Scale: (%.3f, %.3f, %.3f)\n",
+         g_bmm150.scale_x, g_bmm150.scale_y, g_bmm150.scale_z);
 
   return OK;
-}
-
-/****************************************************************************
- * Name: bmm150_self_test
- *
- * Description:
- *   Perform self-test (basic connectivity check)
- ****************************************************************************/
-
-int bmm150_self_test(void)
-{
-  uint8_t chip_id;
-  bmm150_data_t data;
-  int ret;
-
-  if (!g_bmm150.initialized)
-    {
-      return -ENODEV;
-    }
-
-  /* Test 1: Read chip ID */
-
-  ret = i2c_manager_read_reg(IMU_BMM150_I2C_ADDR, BMM150_REG_CHIP_ID,
-                              &chip_id);
-  if (ret < 0 || chip_id != BMM150_CHIP_ID)
-    {
-      snerr("ERROR: Self-test failed - chip ID test\n");
-      return -EIO;
-    }
-
-  /* Test 2: Read data */
-
-  ret = bmm150_read(&data);
-  if (ret < 0)
-    {
-      snerr("ERROR: Self-test failed - data read test\n");
-      return ret;
-    }
-
-  /* Test 3: Check if data is reasonable (Earth's field: 25-65 uT) */
-
-  float magnitude = sqrtf(data.x * data.x + data.y * data.y +
-                          data.z * data.z);
-
-  if (magnitude < 10.0f || magnitude > 100.0f)
-    {
-      snwarn("WARNING: Self-test - unusual field magnitude: %.1f uT\n",
-             magnitude);
-      snwarn("         Expected: 25-65 uT (Earth's magnetic field)\n");
-    }
-
-  sninfo("BMM150 self-test PASSED\n");
-  sninfo("  Chip ID: 0x%02x\n", chip_id);
-  sninfo("  Mag (X,Y,Z): (%.1f, %.1f, %.1f) uT\n", data.x, data.y, data.z);
-  sninfo("  Magnitude: %.1f uT\n", magnitude);
-
-  return OK;
-}
-
-/****************************************************************************
- * Name: bmm150_get_stats
- *
- * Description:
- *   Get driver statistics
- ****************************************************************************/
-
-void bmm150_get_stats(uint32_t *reads, uint32_t *errors)
-{
-  if (reads)
-    {
-      *reads = g_bmm150.read_count;
-    }
-
-  if (errors)
-    {
-      *errors = g_bmm150.error_count;
-    }
 }

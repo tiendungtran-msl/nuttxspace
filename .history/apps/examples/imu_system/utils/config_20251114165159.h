@@ -62,6 +62,28 @@
                                         /* 0x12 (SDO=SCL) */
                                         /* 0x13 (SDO=SDA) */
 
+/* Pin Definitions (Documentation) */
+
+/* SPI1 Pins:
+ *   PA5  - SPI1_SCK   (Clock)
+ *   PA6  - SPI1_MISO  (Master In Slave Out)
+ *   PA7  - SPI1_MOSI  (Master Out Slave In)
+ *   PA4  - ICM0_CS    (Chip Select #0)
+ *   PD11 - ICM1_CS    (Chip Select #1)
+ *   PD12 - ICM2_CS    (Chip Select #2)
+ *   PD13 - ICM3_CS    (Chip Select #3)
+ */
+
+/* I2C1 Pins:
+ *   PB6  - I2C1_SCL   (Clock)
+ *   PB7  - I2C1_SDA   (Data)
+ */
+
+/* Future GPS UART4:
+ *   PA0  - UART4_TX
+ *   PA1  - UART4_RX
+ */
+
 /* ========================================================================
  * Sensor Configuration
  * ======================================================================== */
@@ -88,7 +110,10 @@
 #define IMU_FUSION_RATE_HZ       100    /* Sensor fusion update rate (100 Hz) */
 #define IMU_LED_RATE_HZ          10     /* LED update rate (10 Hz) */
 
-/* Task Priorities (higher number = higher priority) */
+/* Task Priorities (higher number = higher priority) 
+ * NuttX priority range: 1-255
+ * Higher values = higher priority
+ */
 
 #define IMU_SENSOR_TASK_PRIORITY  150   /* Highest - real-time sensor reading */
 #define IMU_FUSION_TASK_PRIORITY  140   /* High - sensor fusion computation */
@@ -115,6 +140,12 @@
 #define IMU_SENSOR_QUEUE_SIZE    64     /* Sensor data queue (64 packets) */
 #define IMU_FUSION_QUEUE_SIZE    32     /* Fusion result queue (32 results) */
 
+/* Queue Memory Usage:
+ * Sensor Queue: 64 × ~1.5KB = ~96 KB
+ * Fusion Queue: 32 × 64B = ~2 KB
+ * Total: ~98 KB
+ */
+
 /* ========================================================================
  * Algorithm Configuration
  * ======================================================================== */
@@ -122,11 +153,15 @@
 /* Madgwick AHRS Filter */
 
 #define IMU_MADGWICK_BETA        0.1f   /* Filter gain (0.0 - 1.0) */
+                                        /* Higher = faster convergence */
+                                        /* Lower = smoother output */
+
 #define IMU_MADGWICK_SAMPLE_FREQ ((float)IMU_FUSION_RATE_HZ)
 
 /* Complementary Filter (alternative) */
 
 #define IMU_COMP_FILTER_ALPHA    0.98f  /* Gyro weight (0.0 - 1.0) */
+                                        /* 0.98 = 98% gyro, 2% accel/mag */
 
 /* ========================================================================
  * Calibration Configuration
@@ -197,17 +232,11 @@
  * Safety Limits
  * ======================================================================== */
 
-/* Sensor Value Limits (sanity checks) - Using integer values for #if */
+/* Sensor Value Limits (sanity checks) */
 
-#define IMU_MAX_ACCEL_G_INT      20     /* Maximum acceleration (g) */
-#define IMU_MAX_GYRO_DPS_INT     2500   /* Maximum rotation rate (dps) */
-#define IMU_MAX_MAG_UT_INT       200    /* Maximum magnetic field (uT) */
-
-/* Float versions for runtime use */
-
-#define IMU_MAX_ACCEL_G          20.0f
-#define IMU_MAX_GYRO_DPS         2500.0f
-#define IMU_MAX_MAG_UT           200.0f
+#define IMU_MAX_ACCEL_G          20.0f  /* Maximum acceleration (g) */
+#define IMU_MAX_GYRO_DPS         2500.0f /* Maximum rotation rate (dps) */
+#define IMU_MAX_MAG_UT           200.0f /* Maximum magnetic field (uT) */
 
 /* Temperature Limits */
 
@@ -296,7 +325,7 @@ extern struct data_queue_s g_fusion_queue;
 #endif
 
 /* ========================================================================
- * Compile-Time Checks (FIXED - No floating point in preprocessor)
+ * Compile-Time Checks
  * ======================================================================== */
 
 /* Verify configuration sanity */
@@ -313,7 +342,9 @@ extern struct data_queue_s g_fusion_queue;
 #  warning "IMU_SENSOR_QUEUE_SIZE is very small, may cause overflows"
 #endif
 
-/* Removed floating-point checks - these will be checked at runtime */
+#if IMU_MADGWICK_BETA < 0.0f || IMU_MADGWICK_BETA > 1.0f
+#  error "IMU_MADGWICK_BETA must be between 0.0 and 1.0"
+#endif
 
 #if IMU_NUM_ICM42688P != 4
 #  error "This configuration requires exactly 4 ICM42688P sensors"
