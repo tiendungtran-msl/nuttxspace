@@ -8,6 +8,7 @@
         "userled.h": "c",
         "timer.h": "c",
         "signal.h": "c",
-        "pthread.h": "c"
+        "pthread.h": "c",
+        "stm32_pwm.h": "c"
     }
 }

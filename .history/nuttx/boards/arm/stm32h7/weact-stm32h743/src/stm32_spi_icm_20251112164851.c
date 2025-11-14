@@ -28,27 +28,17 @@
 
 /* GPIO Configuration for ICM42688P CS pins */
 
-/* GPIO definitions for ICM42688P CS pins */
+#define GPIO_SPI1_CS_ICM0    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                              GPIO_OUTPUT | GPIO_PORTA | GPIO_PIN4)
 
-#ifndef GPIO_SPI1_CS0_ICM
-#define GPIO_SPI1_CS0_ICM (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                           GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN4)
-#endif
+#define GPIO_SPI1_CS_ICM1    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                              GPIO_OUTPUT | GPIO_PORTD | GPIO_PIN11)
 
-#ifndef GPIO_SPI1_CS1_ICM
-#define GPIO_SPI1_CS1_ICM (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                           GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN11)
-#endif
+#define GPIO_SPI1_CS_ICM2    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                              GPIO_OUTPUT | GPIO_PORTD | GPIO_PIN12)
 
-#ifndef GPIO_SPI1_CS2_ICM
-#define GPIO_SPI1_CS2_ICM (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                           GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN12)
-#endif
-
-#ifndef GPIO_SPI1_CS3_ICM
-#define GPIO_SPI1_CS3_ICM (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
-                           GPIO_OUTPUT_SET | GPIO_PORTD | GPIO_PIN13)
-#endif
+#define GPIO_SPI1_CS_ICM3    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                              GPIO_OUTPUT | GPIO_PORTD | GPIO_PIN13)
 
 /* GPIO Configuration for BMM150 CS pin */
 

@@ -52,10 +52,6 @@
 #endif
 
 #ifdef CONFIG_STM32H7_I2C
-#  include "stm32_i2c.h"
-#  include <nuttx/i2c/i2c_master.h>
-#
-#endif
 
 /****************************************************************************
  * Private Functions

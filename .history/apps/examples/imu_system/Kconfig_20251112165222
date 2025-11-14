@@ -1,0 +1,58 @@
+config EXAMPLES_IMU_SYSTEM
+	tristate "IMU System with 4x ICM42688P + BMM150"
+	default n
+	depends on STM32H7_SPI1 && STM32H7_I2C1
+	---help---
+		Complete IMU system with sensor fusion:
+		- 4x ICM-42688-P (6-DOF IMU) via SPI1
+		- 1x BMM150 (Magnetometer) via I2C1 (PB6/PB7)
+		- LED status indicator on PC0
+		- Madgwick sensor fusion algorithm
+		- NuttX RTOS task-based architecture
+
+if EXAMPLES_IMU_SYSTEM
+
+config EXAMPLES_IMU_SYSTEM_PROGNAME
+	string "Program name"
+	default "imu_system"
+	---help---
+		This is the name of the program that will be used when the NSH ELF
+		program is installed.
+
+config EXAMPLES_IMU_SYSTEM_PRIORITY
+	int "IMU system task priority"
+	default 100
+
+config EXAMPLES_IMU_SYSTEM_STACKSIZE
+	int "IMU system stack size"
+	default DEFAULT_TASK_STACKSIZE
+
+config EXAMPLES_IMU_SYSTEM_DEBUG
+	bool "Enable debug output"
+	default n
+	---help---
+		Enable additional debug output from the IMU system.
+
+config EXAMPLES_IMU_SYSTEM_SENSOR_RATE
+	int "Sensor reading rate (Hz)"
+	default 1000
+	range 100 1000
+	---help---
+		Sensor reading rate in Hz. Higher rates require more CPU.
+
+config EXAMPLES_IMU_SYSTEM_FUSION_RATE
+	int "Fusion update rate (Hz)"
+	default 100
+	range 10 500
+	---help---
+		Sensor fusion update rate in Hz.
+
+config EXAMPLES_IMU_SYSTEM_MADGWICK_BETA
+	int "Madgwick filter beta (x100)"
+	default 10
+	range 1 50
+	---help---
+		Madgwick filter beta parameter (multiplied by 100).
+		Typical values: 3-10 for beta = 0.033 to 0.1
+
+endif
