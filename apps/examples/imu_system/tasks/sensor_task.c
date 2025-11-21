@@ -27,6 +27,7 @@
 extern data_queue_t g_sensor_queue;
 extern system_state_t g_system_state;
 
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -36,6 +37,7 @@ extern system_state_t g_system_state;
  ****************************************************************************/
 
 void *sensor_task_main(void *arg)
+  (void)arg;
 {
   sensor_data_packet_t packet;
   uint64_t period_us = 1000000 / IMU_SENSOR_RATE_HZ;
@@ -75,7 +77,7 @@ void *sensor_task_main(void *arg)
 
       /* Read BMM150 magnetometer */
 
-      ret = bmm150_read(&packet.mag);
+      ret = bmm150_read(&g_bmm150_dev, &packet.mag);
       if (ret < 0)
         {
           snerr("ERROR: Failed to read BMM150\n");
@@ -99,8 +101,8 @@ void *sensor_task_main(void *arg)
           static uint32_t drop_count = 0;
           if ((++drop_count % 100) == 0)
             {
-              snerr("WARNING: Sensor queue full, %u samples dropped\n",
-                    drop_count);
+              snerr("WARNING: Sensor queue full, %lu samples dropped\n",
+                    (unsigned long)drop_count);
             }
         }
 
@@ -120,8 +122,8 @@ void *sensor_task_main(void *arg)
           static uint32_t miss_count = 0;
           if ((++miss_count % 100) == 0)
             {
-              snerr("WARNING: Sensor task missed %u deadlines\n",
-                    miss_count);
+              snerr("WARNING: Sensor task missed %lu deadlines\n",
+                    (unsigned long)miss_count);
             }
 
           next_time = current_time;

@@ -81,3 +81,8 @@ void *fusion_task_main(void *arg);
 void *led_task_main(void *arg);
 
 #endif /* __APPS_EXAMPLES_IMU_SYSTEM_TASKS_TASKS_H */
+
+/* External BMM150 device */
+#include "../drivers/bmm150/bmm150_driver.h"
+extern bmm150_dev_t g_bmm150_dev;
+

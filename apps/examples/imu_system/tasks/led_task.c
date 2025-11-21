@@ -36,6 +36,7 @@ extern system_state_t g_system_state;
  ****************************************************************************/
 
 void *led_task_main(void *arg)
+  (void)arg;
 {
   uint64_t period_us = 1000000 / IMU_LED_RATE_HZ;
   uint64_t next_time;

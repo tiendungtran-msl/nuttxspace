@@ -49,6 +49,7 @@ extern system_state_t g_system_state;
  ****************************************************************************/
 
 void *fusion_task_main(void *arg)
+  (void)arg;
 {
   sensor_data_packet_t sensor_packet;
   fusion_result_t fusion_result;

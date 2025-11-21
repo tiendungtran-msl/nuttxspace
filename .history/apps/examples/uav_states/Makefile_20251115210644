@@ -1,0 +1,12 @@
+include $(APPDIR)/Make.defs
+
+# UAV States Application
+
+PROGNAME  = uav_states
+PRIORITY  = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_DEFAULT_TASK_STACKSIZE)
+MODULE    = $(CONFIG_EXAMPLES_UAV_STATES)
+
+MAINSRC = uav_states_main.c
+
+include $(APPDIR)/Application.mk
