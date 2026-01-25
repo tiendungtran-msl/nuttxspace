@@ -1,0 +1,11 @@
+#include "icm42688p_task.h"
+/****************************************************************************
+ * apps/examples/uav_states/tests/icm42688p_test.c
+ ****************************************************************************/ 
+#include <nuttx/config.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <debug.h>
+#include <errno.h>
+#include <syslog.h>
+#include <signal.h>

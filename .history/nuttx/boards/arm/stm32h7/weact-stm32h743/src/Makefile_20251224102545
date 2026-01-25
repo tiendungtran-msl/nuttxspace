@@ -1,0 +1,38 @@
+############################################################################
+# boards/arm/stm32h7/weact-stm32h743/src/Makefile
+############################################################################
+
+include $(TOPDIR)/Make.defs
+
+CSRCS  = stm32_boot.c stm32_bringup.c
+CSRCS += stm32_gpio.c stm32_appinitialize.c
+CSRCS += stm32_spi.c
+
+ifeq ($(CONFIG_USERLED),y)
+CSRCS += stm32_userleds.c
+endif
+
+ifeq ($(CONFIG_ARCH_LEDS),y)
+CSRCS += stm32_autoleds.c
+else
+# If you have stm32_gpio_led.c for other LED logic, include it here
+# CSRCS += stm32_gpio_led.c
+endif
+
+ifeq ($(CONFIG_STM32H7_SDMMC1),y)
+CSRCS += stm32_sdmmc.c
+endif
+
+# If you have explicit USART/I2C board code: 
+# CSRCS += stm32_usart.c stm32_i2c.c
+
+# DMA alloc (if needed for your board)
+ifeq ($(CONFIG_FAT_DMAMEMORY),y)
+CSRCS += stm32_dma_alloc.c
+endif
+
+# Add stm32_spi_icm.c only if you want board-level ICM logic (NOT recommended;
+# better to have it in drivers/imu). Uncomment if you insist: 
+# CSRCS += stm32_spi_icm.c
+
+include $(TOPDIR)/boards/Board.mk

@@ -1,0 +1,24 @@
+############################################################################
+# boards/arm/stm32h7/uav_states/src/Makefile
+############################################################################
+
+include $(TOPDIR)/Make.defs
+
+# Danh sách các file nguồn C cốt lõi (Core Sources)
+CSRCS = stm32_boot.c stm32_bringup.c stm32_spi.c
+
+# Điều khiển User LEDs (stm32_userled.c)
+# Thường file này luôn được include, hoặc phụ thuộc vào CONFIG_ARCH_LEDS
+# Nhưng vì nó nằm trong cây thư mục của bạn, ta cứ include vào.
+ifdef CONFIG_DEV_GPIO
+CSRCS += stm32_userled.c
+endif
+
+# stm32_appinitialize.c chứa hàm board_app_initialize()
+# Nó chỉ cần thiết nếu bạn bật tính năng BOARDCTL (để NSH gọi khởi tạo)
+ifeq ($(CONFIG_BOARDCTL),y)
+CSRCS += stm32_appinitialize.c
+endif
+
+# Bao gồm file Board.mk chung của NuttX để xử lý logic biên dịch
+include $(TOPDIR)/boards/Board.mk

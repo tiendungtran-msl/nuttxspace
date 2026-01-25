@@ -1,0 +1,3 @@
+ifneq ($(CONFIG_EXAMPLES_ICM_TEST_MAIN),)
+CONFIGURED_APPS += $(APPDIR)/examples/i2sloop
+endif

@@ -1,0 +1,13 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+if ARCH_BOARD_UAV_STATES
+config ARCH_BOARD_WEACT_STM32H743
+  bool "WeAct Studio STM32H743 UAV States Board"
+  depends on ARCH_BOARD_UAV_STATES
+  help
+    Enable support for the WeAct Studio STM32H743 UAV States Board
+
+endif # ARCH_BOARD_WEACT_STM32H743

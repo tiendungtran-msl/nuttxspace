@@ -1,0 +1,95 @@
+/****************************************************************************
+ * boards/arm/stm32h7/weact-stm32h743/src/stm32_spi.c
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+#include <nuttx/spi/spi.h>
+#include <errno.h>
+#include <syslog.h>
+#include <stdbool.h>
+
+#include <stm32_gpio.h>
+#include <stm32_spi.h>
+
+#include "board.h"
+#include "weact-stm32h743.h"
+
+/* SPI1 handle */
+static FAR struct spi_dev_s *g_spi1;
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+FAR struct spi_dev_s *weact_spi1(void)
+{
+  return g_spi1;
+}
+
+int weact_spi_bus_initialize(void)
+{
+#ifdef CONFIG_STM32H7_SPI1
+  g_spi1 = stm32h7_spibus_initialize(1);
+  if (g_spi1 == NULL)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to initialize SPI1\n");
+      return -ENODEV;
+    }
+
+  /* Set default mode/bits (drivers may override) */
+  SPI_SETBITS(g_spi1, 8);
+  SPI_FREQUENCY(g_spi1, 1000000);
+
+  /
+
+  return OK;
+#else
+  return -ENOSYS;
+#endif
+}
+
+/****************************************************************************
+ * Board-provided SPI chip select logic (called by STM32 SPI driver)
+ ****************************************************************************/
+
+void stm32_spi1select(FAR struct spi_dev_s *dev, uint32_t devid,
+                      bool selected)
+{
+  /* Active-low CS */
+  bool inactive = ! selected;
+
+  switch (devid)
+    {
+      case SPIDEV_IMU0:
+        stm32_gpiowrite(GPIO_SPI1_CS_IMU0, inactive);
+        break;
+
+      case SPIDEV_IMU1:
+        stm32_gpiowrite(GPIO_SPI1_CS_IMU1, inactive);
+        break;
+
+      case SPIDEV_IMU2:
+        stm32_gpiowrite(GPIO_SPI1_CS_IMU2, inactive);
+        break;
+
+      case SPIDEV_IMU3:
+        stm32_gpiowrite(GPIO_SPI1_CS_IMU3, inactive);
+        break;
+
+      default:
+        break;
+    }
+}
+
+uint8_t stm32_spi1status(FAR struct spi_dev_s *dev, uint32_t devid)
+{
+  return SPI_STATUS_PRESENT;
+}
+
+#ifdef CONFIG_SPI_CMDDATA
+int stm32_spi1cmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd)
+{
+  /* Not used for IMU; can return -ENODEV or 0 */
+  return 0;
+}
+#endif

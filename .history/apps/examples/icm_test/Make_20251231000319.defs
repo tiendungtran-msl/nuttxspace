@@ -1,0 +1,3 @@
+ifneq ($(CONFIG_EXAMPLES_ICM_TEST),)
+CONFIGURED_APPS += $(APPDIR)/examples/icm_
+endif

@@ -1,0 +1,27 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config EXAMPLES_ICM42688_TEST
+	tristate "ICM42688P test application"
+	default n
+	depends on STM32H7_SPI1
+	---help---
+		Test application for 4x ICM42688P IMUs on SPI1
+
+if EXAMPLES_ICM42688_TEST
+
+config EXAMPLES_ICM42688_TEST_PROGNAME
+	string "Program name"
+	default "icm42688_test"
+
+config EXAMPLES_ICM42688_TEST_PRIORITY
+	int "Task priority"
+	default 100
+
+config EXAMPLES_ICM42688_TEST_STACKSIZE
+	int "Stack size"
+	default 4096
+
+endif
