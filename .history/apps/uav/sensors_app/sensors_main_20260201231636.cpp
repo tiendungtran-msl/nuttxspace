@@ -283,49 +283,29 @@ static void init_filters(SensorsContext* ctx)
 /**
  * @brief Khởi tạo IMU drivers
  *
- * Khởi tạo 4 ICM42688P sensors trên SPI1
+ * TODO: Thay dummy bằng real ICM42688P driver
  */
 static int init_imu_drivers(SensorsContext* ctx)
 {
-    int ret;
-    int init_count = 0;
+    syslog(LOG_INFO, "[sensors] Initializing %d IMU drivers...\n", CONFIG_UAV_NUM_IMUS);
 
-    syslog(LOG_INFO, "[sensors] Initializing %d ICM42688P IMU drivers...\n", CONFIG_UAV_NUM_IMUS);
+    /* TODO: Khi có hardware, uncomment và sử dụng:
+     *
+     * const uint8_t spi_bus = 1;
+     * const uint32_t cs_pins[] = {GPIO_SPI1_CS0, GPIO_SPI1_CS1, GPIO_SPI1_CS2, GPIO_SPI1_CS3};
+     *
+     * for (int i = 0; i < CONFIG_UAV_NUM_IMUS; i++) {
+     *     g_imu_drivers[i] = new drivers::imu::ICM42688P(spi_bus, cs_pins[i]);
+     *     if (g_imu_drivers[i]->initialize() != 0) {
+     *         syslog(LOG_ERR, "[sensors] Failed to init IMU %d\n", i);
+     *         continue;
+     *     }
+     *     ctx->fusion.set_imu_present(i, true);
+     * }
+     */
 
-    /* Initialize SPI1 for ICM42688P */
-    ret = board_spi1_icm_initialize();
-    if (ret < 0) {
-        syslog(LOG_ERR, "[sensors] Failed to initialize SPI1 for ICM: %d\n", ret);
-        return ret;
-    }
-
-    /* Initialize each ICM42688P */
+    /* Dummy: Đánh dấu tất cả IMU là present */
     for (int i = 0; i < CONFIG_UAV_NUM_IMUS; i++) {
-        struct spi_dev_s *spi = board_spi1_icm_get_device(i);
-        
-        if (spi == NULL) {
-            syslog(LOG_ERR, "[sensors] Failed to get SPI device for IMU %d\n", i);
-            g_imu_drivers[i] = NULL;
-            continue;
-        }
-
-        /* Create ICM42688P instance */
-        g_imu_drivers[i] = new ICM42688P(spi, i);
-        if (g_imu_drivers[i] == NULL) {
-            syslog(LOG_ERR, "[sensors] Failed to allocate ICM42688P %d\n", i);
-            continue;
-        }
-
-        /* Initialize sensor */
-        ret = g_imu_drivers[i]->init();
-        if (ret < 0) {
-            syslog(LOG_ERR, "[sensors] Failed to init ICM42688P %d: %d\n", i, ret);
-            delete g_imu_drivers[i];
-            g_imu_drivers[i] = NULL;
-            continue;
-        }
-
-        /* Mark as present in fusion */
         ctx->fusion.set_imu_present(i, true);
 
         /* Register với health monitor */
@@ -333,53 +313,14 @@ static int init_imu_drivers(SensorsContext* ctx)
             static_cast<ComponentId>(static_cast<int>(ComponentId::IMU_0) + i),
             true
         );
-
-        init_count++;
-        syslog(LOG_INFO, "[sensors] ICM42688P %d initialized OK\n", i);
     }
 
-    if (init_count == 0) {
-        syslog(LOG_ERR, "[sensors] No IMUs initialized!\n");
-        return -ENODEV;
-    }
-
-    syslog(LOG_INFO, "[sensors] Initialized %d/%d IMUs\n", init_count, CONFIG_UAV_NUM_IMUS);
+    syslog(LOG_INFO, "[sensors] Initialized %d IMUs\n", CONFIG_UAV_NUM_IMUS);
     return 0;
 }
 
 /**
- * @brief Đọc dữ liệu từ IMU thật (ICM42688P)
- */
-static int read_imu_real(int imu_index, sensor_imu_s* msg, uint64_t now_us)
-{
-    if (g_imu_drivers[imu_index] == NULL) {
-        return -ENODEV;
-    }
-
-    struct icm42688p_data_s data;
-    int ret = g_imu_drivers[imu_index]->read(&data);
-    if (ret < 0) {
-        return ret;
-    }
-
-    msg->timestamp_us = now_us;
-    msg->instance = imu_index;
-
-    msg->gyro[0] = data.gyro_x;
-    msg->gyro[1] = data.gyro_y;
-    msg->gyro[2] = data.gyro_z;
-
-    msg->accel[0] = data.accel_x;
-    msg->accel[1] = data.accel_y;
-    msg->accel[2] = data.accel_z;
-
-    msg->temperature = data.temperature;
-
-    return 0;
-}
-
-/**
- * @brief Đọc dữ liệu từ IMU (dummy implementation cho fallback)
+ * @brief Đọc dữ liệu từ IMU (dummy implementation)
  */
 static void read_imu_dummy(int imu_index, sensor_imu_s* msg, uint64_t now_us)
 {
@@ -408,13 +349,8 @@ static void process_imu(SensorsContext* ctx, int imu_index, uint64_t now_us)
     ImuContext* imu_ctx = &ctx->imu[imu_index];
     sensor_imu_s* raw = &ctx->imu_msg[imu_index];
 
-    /* Đọc raw data từ ICM42688P thật, fallback sang dummy nếu fail */
-    int ret = read_imu_real(imu_index, raw, now_us);
-    if (ret < 0) {
-        /* IMU không khả dụng, dùng dummy */
-        read_imu_dummy(imu_index, raw, now_us);
-        imu_ctx->error_count++;
-    }
+    /* Đọc raw data */
+    read_imu_dummy(imu_index, raw, now_us);
 
     /* Apply lowpass filters */
     float filtered_gyro[3];

@@ -362,27 +362,3 @@ class ControlPanel(QWidget):
             self._record_btn.setChecked(False)
             self._record_label.setText("Not recording")
             self._record_label.setStyleSheet("color: gray;")
-    
-    def reset_display(self):
-        """Reset all display fields to default values"""
-        # Connection stats
-        self._packet_label.setText("0")
-        self._drops_label.setText("0")
-        self._rate_label.setText("0 Hz")
-        
-        # Health indicators
-        self._imu_indicator.set_color('off')
-        self._imu_label.setText("--")
-        self._baro_indicator.set_color('off')
-        self._baro_label.setText("--")
-        self._mag_indicator.set_color('off')
-        self._mag_label.setText("--")
-        self._gps_indicator.set_color('off')
-        self._gps_label.setText("--")
-        self._ekf_indicator.set_color('off')
-        self._ekf_label.setText("--")
-        
-        # System info
-        self._cpu_label.setText("--")
-        self._battery_label.setText("--")
-        self._uptime_label.setText("--")

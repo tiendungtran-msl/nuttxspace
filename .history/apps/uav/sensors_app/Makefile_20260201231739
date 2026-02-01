@@ -45,7 +45,6 @@ CFLAGS += -I$(APPDIR)/uav/lib
 CFLAGS += -I$(APPDIR)/uav/lib/platform
 CFLAGS += -I$(APPDIR)/uav/lib/utils
 CFLAGS += -I$(APPDIR)/uav/drivers
-CFLAGS += -I$(TOPDIR)/boards/arm/stm32h7/uav_states/src
 
 CXXFLAGS += -I$(APPDIR)
 CXXFLAGS += -I$(APPDIR)/uav
@@ -54,7 +53,6 @@ CXXFLAGS += -I$(APPDIR)/uav/lib
 CXXFLAGS += -I$(APPDIR)/uav/lib/platform
 CXXFLAGS += -I$(APPDIR)/uav/lib/utils
 CXXFLAGS += -I$(APPDIR)/uav/drivers
-CXXFLAGS += -I$(TOPDIR)/boards/arm/stm32h7/uav_states/src
 
 # C++ configuration
 CXXEXT = .cpp

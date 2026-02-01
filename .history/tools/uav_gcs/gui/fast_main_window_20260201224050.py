@@ -306,7 +306,6 @@ class FastMainWindow(QMainWindow):
         """Clear all data"""
         self._data_manager.clear()
         self._sensor_display.clear()
-        self._control_panel.reset_display()
         self._packet_count = 0
         self._current_rate = 0.0
     

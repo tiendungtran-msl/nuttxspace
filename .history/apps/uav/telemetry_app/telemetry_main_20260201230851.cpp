@@ -324,8 +324,10 @@ static void fill_packet_data(TelemetryContext *ctx)
     if (ctx->cached_status.timebase_ok)      flags |= SENSOR_TIMEBASE_OK;
     pkt->status.sensor_flags = flags;
 
-    /* CPU load: deadline_misses as proxy for now */
-    pkt->status.cpu_load = (uint16_t)(ctx->cached_status.deadline_misses & 0xFFFF);
+            /* CPU load: deadline_misses as proxy for now */
+            pkt->status.cpu_load = (uint16_t)(status.deadline_misses & 0xFFFF);
+        }
+    }
 
     /*=========================================================================
      * MAG / BARO / GPS - TODO: Add subscriptions khi có topics

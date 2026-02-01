@@ -169,9 +169,7 @@ class FastMainWindow(QMainWindow):
         self._control_panel.connect_requested.connect(self._on_connect)
         self._control_panel.disconnect_requested.connect(self._on_disconnect)
         self._control_panel.record_requested.connect(self._on_record)
-        self._control_panel.demo_requested.connect(self._on_demo)
-        self._control_panel.reset_data_requested.connect(self._on_reset_data)
-        
+        self._control_panel.demo_requested.connect(self._on_demo)        self._control_panel.reset_data_requested.connect(self._on_reset_data)        
         # Serial receiver
         self._receiver.packet_received.connect(self._on_packet_received)
         self._receiver.connection_changed.connect(self._on_connection_changed)
@@ -306,7 +304,6 @@ class FastMainWindow(QMainWindow):
         """Clear all data"""
         self._data_manager.clear()
         self._sensor_display.clear()
-        self._control_panel.reset_display()
         self._packet_count = 0
         self._current_rate = 0.0
     
@@ -322,12 +319,6 @@ class FastMainWindow(QMainWindow):
         self._status_rate.setStyleSheet("color: #00ff00; font-family: monospace; padding: 0 10px;")
         self._status_packets.setText("Pkts: 0")
         self._status_drops.setText("Drops: 0")
-    
-    def _on_reset_data(self):
-        """Handle reset data request from control panel"""
-        self._clear_data()
-        self._reset_indicators()
-        self._status_bar.showMessage("Data cleared")
     
     def _show_about(self):
         """Show about dialog"""

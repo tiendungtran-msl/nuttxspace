@@ -348,38 +348,7 @@ static int init_imu_drivers(SensorsContext* ctx)
 }
 
 /**
- * @brief Đọc dữ liệu từ IMU thật (ICM42688P)
- */
-static int read_imu_real(int imu_index, sensor_imu_s* msg, uint64_t now_us)
-{
-    if (g_imu_drivers[imu_index] == NULL) {
-        return -ENODEV;
-    }
-
-    struct icm42688p_data_s data;
-    int ret = g_imu_drivers[imu_index]->read(&data);
-    if (ret < 0) {
-        return ret;
-    }
-
-    msg->timestamp_us = now_us;
-    msg->instance = imu_index;
-
-    msg->gyro[0] = data.gyro_x;
-    msg->gyro[1] = data.gyro_y;
-    msg->gyro[2] = data.gyro_z;
-
-    msg->accel[0] = data.accel_x;
-    msg->accel[1] = data.accel_y;
-    msg->accel[2] = data.accel_z;
-
-    msg->temperature = data.temperature;
-
-    return 0;
-}
-
-/**
- * @brief Đọc dữ liệu từ IMU (dummy implementation cho fallback)
+ * @brief Đọc dữ liệu từ IMU (dummy implementation)
  */
 static void read_imu_dummy(int imu_index, sensor_imu_s* msg, uint64_t now_us)
 {
@@ -408,13 +377,8 @@ static void process_imu(SensorsContext* ctx, int imu_index, uint64_t now_us)
     ImuContext* imu_ctx = &ctx->imu[imu_index];
     sensor_imu_s* raw = &ctx->imu_msg[imu_index];
 
-    /* Đọc raw data từ ICM42688P thật, fallback sang dummy nếu fail */
-    int ret = read_imu_real(imu_index, raw, now_us);
-    if (ret < 0) {
-        /* IMU không khả dụng, dùng dummy */
-        read_imu_dummy(imu_index, raw, now_us);
-        imu_ctx->error_count++;
-    }
+    /* Đọc raw data */
+    read_imu_dummy(imu_index, raw, now_us);
 
     /* Apply lowpass filters */
     float filtered_gyro[3];

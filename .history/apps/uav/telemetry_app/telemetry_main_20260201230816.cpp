@@ -270,62 +270,59 @@ static void fill_packet_data(TelemetryContext *ctx)
 
     /*=========================================================================
      * ATTITUDE DATA - từ vehicle_attitude topic
-     * Luôn cập nhật cache nếu có data mới, sau đó dùng cache
      *=========================================================================*/
 
+    vehicle_attitude_s attitude;
     if (ctx->attitude_sub >= 0)
     {
         bool updated = false;
         uorb::orb_check(ctx->attitude_sub, &updated);
 
-        if (updated)
+        if (updated && uorb::orb_copy(ORB_ID(vehicle_attitude), ctx->attitude_sub, &attitude) == 0)
         {
-            uorb::orb_copy(ORB_ID(vehicle_attitude), ctx->attitude_sub, &ctx->cached_attitude);
+            pkt->attitude.qw = attitude.q[0];
+            pkt->attitude.qx = attitude.q[1];
+            pkt->attitude.qy = attitude.q[2];
+            pkt->attitude.qz = attitude.q[3];
+
+            pkt->attitude.roll = attitude.roll;
+            pkt->attitude.pitch = attitude.pitch;
+            pkt->attitude.yaw = attitude.yaw;
+
+            /* innovation_var: use 0 for now, EKF sẽ fill sau */
+            pkt->attitude.innovation_var = 0.0f;
         }
     }
 
-    /* Luôn sử dụng cached attitude data */
-    pkt->attitude.qw = ctx->cached_attitude.q[0];
-    pkt->attitude.qx = ctx->cached_attitude.q[1];
-    pkt->attitude.qy = ctx->cached_attitude.q[2];
-    pkt->attitude.qz = ctx->cached_attitude.q[3];
-    pkt->attitude.roll = ctx->cached_attitude.roll;
-    pkt->attitude.pitch = ctx->cached_attitude.pitch;
-    pkt->attitude.yaw = ctx->cached_attitude.yaw;
-    pkt->attitude.innovation_var = 0.0f;
-
     /*=========================================================================
      * SYSTEM STATUS
-     * Luôn cập nhật cache nếu có data mới, sau đó dùng cache
      *=========================================================================*/
 
+    system_status_s status;
     if (ctx->status_sub >= 0)
     {
         bool updated = false;
         uorb::orb_check(ctx->status_sub, &updated);
 
-        if (updated)
+        if (updated && uorb::orb_copy(ORB_ID(system_status), ctx->status_sub, &status) == 0)
         {
-            uorb::orb_copy(ORB_ID(system_status), ctx->status_sub, &ctx->cached_status);
+            pkt->status.health_level = status.health_level;
+            pkt->status.healthy_imus = status.healthy_imus;
+
+            /* Build sensor flags */
+            uint8_t flags = 0;
+            if (status.healthy_imus > 0) flags |= SENSOR_IMU_OK;
+            if (status.baro_ok)          flags |= SENSOR_BARO_OK;
+            if (status.mag_ok)           flags |= SENSOR_MAG_OK;
+            if (status.gps_ok)           flags |= SENSOR_GPS_OK;
+            if (status.ekf_ok)           flags |= SENSOR_EKF_OK;
+            if (status.timebase_ok)      flags |= SENSOR_TIMEBASE_OK;
+            pkt->status.sensor_flags = flags;
+
+            /* CPU load: deadline_misses as proxy for now */
+            pkt->status.cpu_load = (uint16_t)(status.deadline_misses & 0xFFFF);
         }
     }
-
-    /* Luôn sử dụng cached status data */
-    pkt->status.health_level = ctx->cached_status.health_level;
-    pkt->status.healthy_imus = ctx->cached_status.healthy_imus;
-
-    /* Build sensor flags */
-    uint8_t flags = 0;
-    if (ctx->cached_status.healthy_imus > 0) flags |= SENSOR_IMU_OK;
-    if (ctx->cached_status.baro_ok)          flags |= SENSOR_BARO_OK;
-    if (ctx->cached_status.mag_ok)           flags |= SENSOR_MAG_OK;
-    if (ctx->cached_status.gps_ok)           flags |= SENSOR_GPS_OK;
-    if (ctx->cached_status.ekf_ok)           flags |= SENSOR_EKF_OK;
-    if (ctx->cached_status.timebase_ok)      flags |= SENSOR_TIMEBASE_OK;
-    pkt->status.sensor_flags = flags;
-
-    /* CPU load: deadline_misses as proxy for now */
-    pkt->status.cpu_load = (uint16_t)(ctx->cached_status.deadline_misses & 0xFFFF);
 
     /*=========================================================================
      * MAG / BARO / GPS - TODO: Add subscriptions khi có topics

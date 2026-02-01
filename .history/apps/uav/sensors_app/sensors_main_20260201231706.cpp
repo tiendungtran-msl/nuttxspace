@@ -408,13 +408,8 @@ static void process_imu(SensorsContext* ctx, int imu_index, uint64_t now_us)
     ImuContext* imu_ctx = &ctx->imu[imu_index];
     sensor_imu_s* raw = &ctx->imu_msg[imu_index];
 
-    /* Đọc raw data từ ICM42688P thật, fallback sang dummy nếu fail */
-    int ret = read_imu_real(imu_index, raw, now_us);
-    if (ret < 0) {
-        /* IMU không khả dụng, dùng dummy */
-        read_imu_dummy(imu_index, raw, now_us);
-        imu_ctx->error_count++;
-    }
+    /* Đọc raw data */
+    read_imu_dummy(imu_index, raw, now_us);
 
     /* Apply lowpass filters */
     float filtered_gyro[3];

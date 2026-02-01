@@ -266,7 +266,14 @@ class AttitudeViewer(QWidget):
         self._qw, self._qx, self._qy, self._qz = qw, qx, qy, qz
         self._roll, self._pitch, self._yaw = roll, pitch, yaw
         
-        # Update labels (always works)
+        # Update rotation matrix
+        rot_matrix = quaternion_to_rotation_matrix(qw, qx, qy, qz)
+        
+        # Apply to all UAV components
+        for visual in [self._body_mesh, self._arms, self._front_arrow]:
+            visual.transform.matrix = rot_matrix
+        
+        # Update labels
         roll_deg = math.degrees(roll)
         pitch_deg = math.degrees(pitch)
         yaw_deg = math.degrees(yaw)
@@ -276,30 +283,11 @@ class AttitudeViewer(QWidget):
         self._yaw_label.setText(f"Yaw: {yaw_deg:+.1f}°")
         self._quat_label.setText(f"Q: [{qw:.3f}, {qx:.3f}, {qy:.3f}, {qz:.3f}]")
         
-        # Update 3D view if available
-        if not self._vispy_ok:
-            return
-        
-        try:
-            # Update rotation matrix
-            rot_matrix = quaternion_to_rotation_matrix(qw, qx, qy, qz)
-            
-            # Apply to all UAV components
-            for visual in [self._body_mesh, self._arms, self._front_arrow]:
-                visual.transform.matrix = rot_matrix
-            
-            # Request redraw
-            self._canvas.update()
-        except Exception:
-            pass
+        # Request redraw
+        self._canvas.update()
     
     def reset_view(self):
         """Reset camera to default view"""
-        if not self._vispy_ok:
-            return
-        try:
-            self._view.camera.elevation = 30
-            self._view.camera.azimuth = 45
-            self._view.camera.distance = 5
-        except Exception:
-            pass
+        self._view.camera.elevation = 30
+        self._view.camera.azimuth = 45
+        self._view.camera.distance = 5
