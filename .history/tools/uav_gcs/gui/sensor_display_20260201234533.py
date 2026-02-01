@@ -92,254 +92,6 @@ class ValueLabel(QLabel):
         """)
 
 
-class ImuFusionPanel(QGroupBox):
-    """
-    Panel hiển thị dữ liệu của cả 4 IMU và cho phép chọn IMU để fusion.
-    """
-    
-    # Signal emitted when IMU selection changes
-    imu_selection_changed = Signal(list)  # List of selected IMU indices
-    
-    def __init__(self, parent=None):
-        super().__init__("IMU Fusion (4 sensors)", parent)
-        
-        self.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                color: #00aaff;
-                border: 1px solid #0066aa;
-                border-radius: 4px;
-                margin-top: 8px;
-                padding-top: 8px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 10px;
-                padding: 0 5px;
-            }
-            QCheckBox {
-                color: #aaa;
-                font-size: 10px;
-            }
-            QCheckBox::indicator {
-                width: 14px;
-                height: 14px;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #00aa00;
-                border: 1px solid #00ff00;
-            }
-            QCheckBox::indicator:unchecked {
-                background-color: #333;
-                border: 1px solid #666;
-            }
-        """)
-        
-        layout = QVBoxLayout(self)
-        layout.setSpacing(4)
-        layout.setContentsMargins(6, 14, 6, 6)
-        
-        # Header row
-        header = QHBoxLayout()
-        header.setSpacing(2)
-        
-        header_labels = ["", "IMU", "Gx", "Gy", "Gz", "Ax", "Ay", "Az"]
-        widths = [20, 35, 55, 55, 55, 55, 55, 55]
-        for label, w in zip(header_labels, widths):
-            lbl = QLabel(label)
-            lbl.setStyleSheet("color: #666; font-size: 9px; font-weight: bold;")
-            lbl.setFixedWidth(w)
-            lbl.setAlignment(Qt.AlignCenter)
-            header.addWidget(lbl)
-        header.addStretch()
-        layout.addLayout(header)
-        
-        # IMU rows
-        self._checkboxes = []
-        self._imu_labels = []  # Store labels for each IMU
-        self._imu_values = []  # Store numeric values (None if not available)
-        
-        colors = ['#ff6666', '#66ff66', '#6666ff', '#ffff66']  # Red, Green, Blue, Yellow
-        
-        for i in range(4):
-            row = QHBoxLayout()
-            row.setSpacing(2)
-            
-            # Checkbox
-            cb = QCheckBox()
-            cb.setChecked(True)
-            cb.setFixedWidth(20)
-            cb.stateChanged.connect(self._on_selection_changed)
-            self._checkboxes.append(cb)
-            row.addWidget(cb)
-            
-            # IMU number
-            imu_num = QLabel(f"#{i}")
-            imu_num.setStyleSheet(f"color: {colors[i]}; font-weight: bold; font-size: 10px;")
-            imu_num.setFixedWidth(35)
-            imu_num.setAlignment(Qt.AlignCenter)
-            row.addWidget(imu_num)
-            
-            # Gyro X, Y, Z
-            imu_data = {}
-            imu_values = {'gx': None, 'gy': None, 'gz': None, 'ax': None, 'ay': None, 'az': None}
-            for axis in ['gx', 'gy', 'gz', 'ax', 'ay', 'az']:
-                lbl = QLabel("---")
-                lbl.setStyleSheet("""
-                    background-color: #1a1a1a;
-                    color: #00cc00;
-                    padding: 1px 3px;
-                    border: 1px solid #333;
-                    font-family: monospace;
-                    font-size: 9px;
-                """)
-                lbl.setFixedWidth(55)
-                lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                imu_data[axis] = lbl
-                row.addWidget(lbl)
-            
-            self._imu_labels.append(imu_data)
-            self._imu_values.append(imu_values)
-            row.addStretch()
-            layout.addLayout(row)
-        
-        # Fused result row
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        separator.setStyleSheet("background-color: #444;")
-        layout.addWidget(separator)
-        
-        fused_row = QHBoxLayout()
-        fused_row.setSpacing(2)
-        
-        # Spacer for checkbox column
-        spacer = QLabel("")
-        spacer.setFixedWidth(20)
-        fused_row.addWidget(spacer)
-        
-        # Fused label
-        fused_lbl = QLabel("Fused")
-        fused_lbl.setStyleSheet("color: #00ffff; font-weight: bold; font-size: 10px;")
-        fused_lbl.setFixedWidth(35)
-        fused_lbl.setAlignment(Qt.AlignCenter)
-        fused_row.addWidget(fused_lbl)
-        
-        # Fused values
-        self._fused_labels = {}
-        self._fused_values = {'gx': None, 'gy': None, 'gz': None, 'ax': None, 'ay': None, 'az': None}
-        for axis in ['gx', 'gy', 'gz', 'ax', 'ay', 'az']:
-            lbl = QLabel("---")
-            lbl.setStyleSheet("""
-                background-color: #002244;
-                color: #00ffff;
-                padding: 1px 3px;
-                border: 1px solid #0088aa;
-                font-family: monospace;
-                font-size: 9px;
-                font-weight: bold;
-            """)
-            lbl.setFixedWidth(55)
-            lbl.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self._fused_labels[axis] = lbl
-            fused_row.addWidget(lbl)
-        
-        fused_row.addStretch()
-        layout.addLayout(fused_row)
-        
-        layout.addStretch()
-    
-    def _on_selection_changed(self, state):
-        """Handle checkbox state change"""
-        selected = [i for i, cb in enumerate(self._checkboxes) if cb.isChecked()]
-        self.imu_selection_changed.emit(selected)
-        self.update_fused()
-    
-    def update_imu_data(self, imu_index: int, gx: float, gy: float, gz: float,
-                         ax: float, ay: float, az: float):
-        """Update data for a specific IMU"""
-        if 0 <= imu_index < 4:
-            # Store numeric values first (source-of-truth)
-            self._imu_values[imu_index]['gx'] = gx
-            self._imu_values[imu_index]['gy'] = gy
-            self._imu_values[imu_index]['gz'] = gz
-            self._imu_values[imu_index]['ax'] = ax
-            self._imu_values[imu_index]['ay'] = ay
-            self._imu_values[imu_index]['az'] = az
-
-            labels = self._imu_labels[imu_index]
-            labels['gx'].setText(f"{gx:+.3f}")
-            labels['gy'].setText(f"{gy:+.3f}")
-            labels['gz'].setText(f"{gz:+.3f}")
-            labels['ax'].setText(f"{ax:+.2f}")
-            labels['ay'].setText(f"{ay:+.2f}")
-            labels['az'].setText(f"{az:+.2f}")
-
-    def clear_imu_data(self, imu_index: int):
-        """Clear a specific IMU's data (mark as unavailable)."""
-        if 0 <= imu_index < 4:
-            for axis in self._imu_values[imu_index]:
-                self._imu_values[imu_index][axis] = None
-            for axis, lbl in self._imu_labels[imu_index].items():
-                lbl.setText("---")
-    
-    def update_fused(self):
-        """Calculate and display fused IMU values from selected IMUs."""
-        selected = [i for i, cb in enumerate(self._checkboxes) if cb.isChecked()]
-        
-        if not selected:
-            for lbl in self._fused_labels.values():
-                lbl.setText("---")
-            for axis in self._fused_values:
-                self._fused_values[axis] = None
-            return
-        
-        # Average the selected IMUs (only those with valid numeric data)
-        sums = {'gx': 0.0, 'gy': 0.0, 'gz': 0.0, 'ax': 0.0, 'ay': 0.0, 'az': 0.0}
-        count = 0
-
-        for i in selected:
-            v = self._imu_values[i]
-            if any(v[axis] is None for axis in sums):
-                continue
-            for axis in sums:
-                sums[axis] += float(v[axis])
-            count += 1
-
-        if count <= 0:
-            for lbl in self._fused_labels.values():
-                lbl.setText("---")
-            for axis in self._fused_values:
-                self._fused_values[axis] = None
-            return
-
-        self._fused_values['gx'] = sums['gx'] / count
-        self._fused_values['gy'] = sums['gy'] / count
-        self._fused_values['gz'] = sums['gz'] / count
-        self._fused_values['ax'] = sums['ax'] / count
-        self._fused_values['ay'] = sums['ay'] / count
-        self._fused_values['az'] = sums['az'] / count
-
-        self._fused_labels['gx'].setText(f"{self._fused_values['gx']:+.3f}")
-        self._fused_labels['gy'].setText(f"{self._fused_values['gy']:+.3f}")
-        self._fused_labels['gz'].setText(f"{self._fused_values['gz']:+.3f}")
-        self._fused_labels['ax'].setText(f"{self._fused_values['ax']:+.2f}")
-        self._fused_labels['ay'].setText(f"{self._fused_values['ay']:+.2f}")
-        self._fused_labels['az'].setText(f"{self._fused_values['az']:+.2f}")
-    
-    def get_selected_imus(self) -> list:
-        """Return list of selected IMU indices"""
-        return [i for i, cb in enumerate(self._checkboxes) if cb.isChecked()]
-    
-    def clear(self):
-        """Clear all IMU data"""
-        for i in range(len(self._imu_labels)):
-            self.clear_imu_data(i)
-        for lbl in self._fused_labels.values():
-            lbl.setText("---")
-        for axis in self._fused_values:
-            self._fused_values[axis] = None
-
-
 class SensorGroup(QGroupBox):
     """Group box cho một loại sensor"""
     
@@ -442,13 +194,9 @@ class FastSensorDisplay(QWidget):
     
     def _setup_ui(self):
         """Setup optimized layout"""
-        main_layout = QVBoxLayout(self)
-        main_layout.setSpacing(5)
+        main_layout = QHBoxLayout(self)
+        main_layout.setSpacing(8)
         main_layout.setContentsMargins(5, 5, 5, 5)
-        
-        # Top row - sensor data in horizontal layout
-        top_row = QHBoxLayout()
-        top_row.setSpacing(8)
         
         # Left column - Raw sensors
         left_col = QVBoxLayout()
@@ -474,7 +222,7 @@ class FastSensorDisplay(QWidget):
         left_col.addWidget(self._baro_group)
         
         left_col.addStretch()
-        top_row.addLayout(left_col)
+        main_layout.addLayout(left_col)
         
         # Middle column - Estimated/Fused
         mid_col = QVBoxLayout()
@@ -497,7 +245,7 @@ class FastSensorDisplay(QWidget):
         mid_col.addWidget(self._pos_group)
         
         mid_col.addStretch()
-        top_row.addLayout(mid_col)
+        main_layout.addLayout(mid_col)
         
         # Right column - Status & Debug
         right_col = QVBoxLayout()
@@ -527,13 +275,7 @@ class FastSensorDisplay(QWidget):
         right_col.addWidget(self._debug_group)
         
         right_col.addStretch()
-        top_row.addLayout(right_col)
-        
-        main_layout.addLayout(top_row, 1)  # Stretch factor 1
-        
-        # Bottom row - IMU Fusion panel (spans full width)
-        self._imu_fusion = ImuFusionPanel()
-        main_layout.addWidget(self._imu_fusion)
+        main_layout.addLayout(right_col)
     
     def update_data(self, data):
         """Update all displays with new telemetry data"""
@@ -610,19 +352,6 @@ class FastSensorDisplay(QWidget):
         # Timing
         self._timestamp.set_value(data.timestamp_us / 1_000_000.0)
         self._sequence.set_value(data.sequence)
-
-        # IMU Fusion panel
-        # IMPORTANT: In live mode, GUI must not modify/perturb MCU data.
-        # Current telemetry packet contains only ONE IMU (already fused on MCU).
-        # We map it to IMU #0; IMU #1..#3 remain unavailable until firmware sends them.
-        self._imu_fusion.update_imu_data(
-            0,
-            data.gyro_x, data.gyro_y, data.gyro_z,
-            data.accel_x, data.accel_y, data.accel_z
-        )
-        for i in (1, 2, 3):
-            self._imu_fusion.clear_imu_data(i)
-        self._imu_fusion.update_fused()
     
     def update_rate(self, rate_hz: float):
         """Update displayed rate"""
@@ -681,6 +410,3 @@ class FastSensorDisplay(QWidget):
         self._timestamp.set_value(0.0)
         self._sequence.set_value(0)
         self._rate.set_value(0)
-        
-        # IMU Fusion panel
-        self._imu_fusion.clear()
