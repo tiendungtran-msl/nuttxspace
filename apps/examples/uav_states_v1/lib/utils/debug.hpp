@@ -19,14 +19,14 @@
   #define DRIVER_INFO(fmt, ...)  syslog(LOG_INFO, ANSI_GREEN "[INFO] " fmt ANSI_RESET "\n", ##__VA_ARGS__)
   
   #ifdef CONFIG_DEBUG_VERBOSE
-    #define DRIVER_DEBUG(fmt, .. .) syslog(LOG_DEBUG, ANSI_BLUE "[DEBUG] " fmt ANSI_RESET "\n", ##__VA_ARGS__)
+    #define DRIVER_DEBUG(fmt, ...) syslog(LOG_DEBUG, ANSI_BLUE "[DEBUG] " fmt ANSI_RESET "\n", ##__VA_ARGS__)
   #else
-    #define DRIVER_DEBUG(fmt, .. .) ((void)0)
+    #define DRIVER_DEBUG(fmt, ...) ((void)0)
   #endif
 
 #else
   #define DRIVER_ERR(fmt, ...)   ((void)0)
   #define DRIVER_WARN(fmt, ...)  ((void)0)
   #define DRIVER_INFO(fmt, ...)  ((void)0)
-  #define DRIVER_DEBUG(fmt, .. .) ((void)0)
+  #define DRIVER_DEBUG(fmt, ...) ((void)0)
 #endif

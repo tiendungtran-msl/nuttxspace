@@ -1,3 +1,0 @@
-ifeq ($(CONFIG_EXAMPLES_GPIO_DEMO),y)
-CONFIGURED_APPS += examples/gpio_demo
-endif

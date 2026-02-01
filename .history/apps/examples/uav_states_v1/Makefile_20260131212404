@@ -1,0 +1,48 @@
+############################################################################
+# apps/examples/uav_states_v1/Makefile
+#
+# UAV Attitude Estimation - Modular Pub/Sub Architecture
+#
+# Directory Structure:
+#   uorb/          - Message definitions and topic broker
+#   modules/       - Independent processing modules
+#     sensors/     - Sensor data acquisition (IMU)
+#     estimator/   - Attitude estimation
+#   drivers/       - Hardware drivers (ICM42688P)
+#   lib/           - Shared libraries
+#   platforms/     - Platform abstraction (HRT, SPI config)
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+CXXEXT = .cpp
+
+# Single program
+PROGNAME  = uav_attitude
+PRIORITY  = SCHED_PRIORITY_DEFAULT
+STACKSIZE = 16384
+MODULE    = $(CONFIG_EXAMPLES_UAV_STATES_V1)
+
+# Main application entry point
+MAINSRC = main.cpp
+
+# C sources - Platform layer
+CSRCS = \
+	platforms/nuttx/hrt/hrt.c
+
+# C++ sources - Organized by module
+CXXSRCS = \
+	modules/sensors/imu_module.cpp \
+	modules/estimator/attitude_module.cpp \
+	lib/drivers/spi/spi_device.cpp \
+	lib/attitude_estimator/attitude_estimator_q.cpp \
+	drivers/imu/icm42688p/icm42688p.cpp \
+	calibration/sensor_calibration.cpp
+
+# Compiler flags
+CXXFLAGS += -std=c++17 -fno-rtti -fno-exceptions -fno-threadsafe-statics
+CXXFLAGS += -I.
+CFLAGS   += -I.
+
+include $(APPDIR)/Application.mk

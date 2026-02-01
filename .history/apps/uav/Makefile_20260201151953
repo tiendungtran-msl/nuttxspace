@@ -1,0 +1,29 @@
+############################################################################
+# apps/uav/Makefile
+#
+# UAV Avionics Stack - Top-level Makefile
+#
+# MỤC ĐÍCH:
+# - Build tất cả sub-components của UAV stack
+# - Mỗi subdirectory là một app hoặc library riêng
+#
+# THỨ TỰ BUILD:
+# 1. lib - shared libraries (mathlib, geo)
+# 2. uorb - message bus
+# 3. drivers - hardware drivers
+# 4. apps - sensors, estimator, state
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# Thứ tự quan trọng: lib và uorb phải build trước các app
+SUBDIRS  = lib
+SUBDIRS += uorb
+SUBDIRS += drivers
+SUBDIRS += sensors_app
+SUBDIRS += estimator_app
+SUBDIRS += state_app
+SUBDIRS += telemetry_app
+
+include $(APPDIR)/Directory.mk

@@ -1,3 +1,0 @@
-ifneq ($(DA),)
-CONFIGURED_APPS += $(APPDIR)/examples/dac
-endif

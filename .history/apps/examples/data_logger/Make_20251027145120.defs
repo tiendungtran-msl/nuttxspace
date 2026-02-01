@@ -1,3 +1,0 @@
-ifneq ($(CONFIG_DATA_LOGGER),)
-CONFIGURED_APPS += $(APPDIR)/examples/data
-endif

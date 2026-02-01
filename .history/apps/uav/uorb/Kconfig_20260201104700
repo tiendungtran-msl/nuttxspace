@@ -1,0 +1,10 @@
+#
+# apps/uav/uorb/Kconfig
+#
+
+config UAV_UORB
+	bool "uORB Message Bus"
+	default y
+	---help---
+		Hệ thống publish/subscribe để giao tiếp giữa các UAV apps.
+		Đây là dependency bắt buộc cho tất cả UAV apps.

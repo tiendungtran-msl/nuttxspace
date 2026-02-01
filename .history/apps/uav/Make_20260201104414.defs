@@ -1,0 +1,10 @@
+############################################################################
+# apps/uav/Make.defs
+#
+# UAV Avionics Stack - Build definitions
+#
+############################################################################
+
+ifneq ($(CONFIG_UAV),)
+CONFIGURED_APPS += $(APPDIR)/uav
+endif

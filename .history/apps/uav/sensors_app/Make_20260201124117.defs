@@ -1,0 +1,10 @@
+############################################################################
+# apps/uav/sensors_app/Make.defs
+#
+# Sensors App Make Definitions
+#
+############################################################################
+
+ifneq ($(CONFIG_UAV_SENSORS_APP),)
+CONFIGURED_APPS += $(APPDIR)/uav/sensors_app
+endif

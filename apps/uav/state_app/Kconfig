@@ -1,0 +1,73 @@
+#
+# apps/uav/state_app/Kconfig
+#
+# State Application Configuration
+#
+# MỤC ĐÍCH:
+# - Cấu hình state_app qua menuconfig
+# - Failsafe timeouts
+# - Arming checks
+#
+
+config UAV_STATE
+	tristate "UAV State Manager"
+	default n
+	depends on UAV_UORB
+	---help---
+		Enable UAV state management application.
+		Quản lý arming, flight mode, failsafe.
+
+if UAV_STATE
+
+config UAV_STATE_PRIORITY
+	int "State manager task priority"
+	default 220
+	---help---
+		Priority của state manager task.
+		Thấp hơn estimator (240).
+
+config UAV_STATE_STACKSIZE
+	int "State manager task stack size"
+	default 4096
+	---help---
+		Stack size cho state manager task.
+
+config UAV_STATE_LOOP_RATE
+	int "State manager loop rate (Hz)"
+	default 50
+	range 10 100
+	---help---
+		Tần số update state machine.
+		50 Hz là đủ cho hầu hết trường hợp.
+
+config UAV_STATE_IMU_TIMEOUT_MS
+	int "IMU data timeout (ms)"
+	default 500
+	range 100 2000
+	---help---
+		Timeout cho IMU data.
+		Failsafe sẽ trigger nếu không nhận được data
+		trong khoảng thời gian này.
+
+config UAV_STATE_ATT_TIMEOUT_MS
+	int "Attitude estimate timeout (ms)"
+	default 500
+	range 100 2000
+	---help---
+		Timeout cho attitude estimate.
+		Failsafe sẽ trigger nếu estimator mất.
+
+config UAV_STATE_PREFLIGHT_GPS
+	bool "Require GPS for arming"
+	default n
+	---help---
+		Yêu cầu GPS fix trước khi arm.
+		Disable nếu bay indoor hoặc không có GPS.
+
+config UAV_STATE_PREFLIGHT_MAG
+	bool "Require magnetometer for arming"
+	default n
+	---help---
+		Yêu cầu magnetometer calibrated trước khi arm.
+
+endif # UAV_STATE

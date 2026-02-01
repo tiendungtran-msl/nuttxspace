@@ -1,0 +1,21 @@
+############################################################################
+# apps/uav/drivers/Makefile
+#
+# Drivers Build
+#
+# MỤC ĐÍCH:
+# - Build tất cả hardware drivers
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# Subdirectories
+SUBDIRS = spi imu
+
+ifeq ($(CONFIG_UAV),y)
+CONFIGURED_APPS += $(SUBDIRS)
+endif
+
+include $(APPDIR)/Directory.mk
+

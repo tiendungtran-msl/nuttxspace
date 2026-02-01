@@ -1,0 +1,78 @@
+#
+# apps/uav/estimator_app/Kconfig
+#
+# Estimator Application Configuration
+#
+# MỤC ĐÍCH:
+# - Cấu hình estimator_app qua menuconfig
+# - Chọn thuật toán estimation (EKF2 / Complementary)
+# - Tuning parameters
+#
+
+config UAV_ESTIMATOR
+	tristate "UAV Estimator Application"
+	default n
+	depends on UAV_UORB
+	---help---
+		Enable UAV estimator application.
+		Ước lượng tư thế và vị trí từ sensor data.
+		Subscribe sensor topics, publish vehicle_attitude và vehicle_local_position.
+
+if UAV_ESTIMATOR
+
+config UAV_ESTIMATOR_PRIORITY
+	int "Estimator task priority"
+	default 240
+	---help---
+		Priority của estimator task.
+		Thấp hơn sensors_app (250) nhưng cao hơn state_app.
+
+config UAV_ESTIMATOR_STACKSIZE
+	int "Estimator task stack size"
+	default 8192
+	---help---
+		Stack size cho estimator task.
+		EKF2 cần nhiều stack cho covariance matrix.
+
+choice
+	prompt "Estimator algorithm"
+	default UAV_ESTIMATOR_EKF2
+
+config UAV_ESTIMATOR_EKF2
+	bool "EKF2 (16-state)"
+	---help---
+		Extended Kalman Filter với 16 state:
+		- Quaternion (4)
+		- Velocity NED (3)
+		- Position NED (3)
+		- Gyro bias (3)
+		- Accel bias (3)
+
+config UAV_ESTIMATOR_COMPLEMENTARY
+	bool "Complementary Filter"
+	---help---
+		Simple complementary filter cho attitude only.
+		Ít tốn CPU hơn EKF2.
+		Không ước lượng position.
+
+endchoice
+
+config UAV_ESTIMATOR_MAG_FUSION
+	bool "Enable magnetometer fusion"
+	default y
+	---help---
+		Fusion magnetometer để ước lượng yaw.
+
+config UAV_ESTIMATOR_BARO_FUSION
+	bool "Enable barometer fusion"
+	default y
+	---help---
+		Fusion barometer để ước lượng altitude.
+
+config UAV_ESTIMATOR_GPS_FUSION
+	bool "Enable GPS fusion"
+	default y
+	---help---
+		Fusion GPS để ước lượng position và velocity.
+
+endif # UAV_ESTIMATOR

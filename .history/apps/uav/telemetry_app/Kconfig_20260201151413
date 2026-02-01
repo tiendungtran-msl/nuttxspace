@@ -1,0 +1,50 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config UAV_TELEMETRY_APP
+	tristate "UAV Telemetry Application"
+	default n
+	---help---
+		Binary telemetry streaming via UART.
+		Sends 128-byte packets at configurable rate.
+
+if UAV_TELEMETRY_APP
+
+config UAV_TELEMETRY_PRIORITY
+	int "Telemetry task priority"
+	default 100
+	---help---
+		Task priority (lower = less priority).
+		Should be lower than sensor/EKF tasks.
+
+config UAV_TELEMETRY_STACKSIZE
+	int "Telemetry stack size"
+	default 4096
+	---help---
+		Stack size in bytes.
+
+config UAV_TELEMETRY_RATE_HZ
+	int "Telemetry rate (Hz)"
+	default 100
+	range 10 500
+	---help---
+		Packet transmission rate.
+		100 Hz = 12.8 KB/s @ 128 bytes/packet.
+
+config UAV_TELEMETRY_UART_DEV
+	string "UART device"
+	default "/dev/ttyS1"
+	---help---
+		UART device for telemetry output.
+
+config UAV_TELEMETRY_BAUDRATE
+	int "UART baudrate"
+	default 921600
+	---help---
+		UART baudrate. Must be high enough for data rate.
+		At 100 Hz, 128 bytes = 102.4 Kbps minimum.
+		Recommended: 921600 baud.
+
+endif # UAV_TELEMETRY_APP

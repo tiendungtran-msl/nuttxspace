@@ -45,6 +45,14 @@ namespace drivers {
                 , frequency(1000000)
                 , lock_mode(LockMode::THREADS)
             {}
+
+            Config(uint8_t bus_, uint32_t devid_, spi_mode_e mode_, uint32_t frequency_, LockMode lock_mode_)
+                : bus(bus_)
+                , devid(devid_)
+                , mode(mode_)
+                , frequency(frequency_)
+                , lock_mode(lock_mode_)
+            {}
         };
 
         /** Transfer result */

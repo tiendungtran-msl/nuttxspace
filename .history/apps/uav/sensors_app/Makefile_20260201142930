@@ -1,0 +1,60 @@
+############################################################################
+# apps/uav/sensors_app/Makefile
+#
+# UAV Sensors Application - Time-Triggered Architecture
+#
+# MỤC ĐÍCH:
+# - Thu thập dữ liệu từ các cảm biến (IMU, Baro, Mag, GPS)
+# - Áp dụng calibration và filtering
+# - Fusion nhiều IMU
+# - Publish sensor_combined cho EKF
+#
+# CẤU TRÚC:
+# - sensors_main.cpp: Main app với TTA scheduling
+# - Phụ thuộc vào: platform, health, sensor_processing libraries
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# App configuration
+PROGNAME  = sensors
+PRIORITY  = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_UAV_SENSORS_STACKSIZE)
+MODULE    = $(CONFIG_UAV_SENSORS_APP)
+
+# Main source
+MAINSRC = sensors_main.cpp
+
+# Library sources - link trực tiếp để tránh vấn đề với build system
+# Platform library
+CSRCS  = $(APPDIR)/uav/lib/platform/hrt.c
+CSRCS += $(APPDIR)/uav/lib/platform/timebase.c
+
+# C++ library sources
+CXXSRCS  = $(APPDIR)/uav/lib/health/health_monitor.cpp
+CXXSRCS += $(APPDIR)/uav/lib/sensor_processing/imu_fusion.cpp
+CXXSRCS += $(APPDIR)/uav/uorb/topics.cpp
+
+# Include paths
+CFLAGS += -I$(APPDIR)
+CFLAGS += -I$(APPDIR)/uav
+CFLAGS += -I$(APPDIR)/uav/uorb
+CFLAGS += -I$(APPDIR)/uav/lib
+CFLAGS += -I$(APPDIR)/uav/lib/platform
+CFLAGS += -I$(APPDIR)/uav/lib/utils
+CFLAGS += -I$(APPDIR)/uav/drivers
+
+CXXFLAGS += -I$(APPDIR)
+CXXFLAGS += -I$(APPDIR)/uav
+CXXFLAGS += -I$(APPDIR)/uav/uorb
+CXXFLAGS += -I$(APPDIR)/uav/lib
+CXXFLAGS += -I$(APPDIR)/uav/lib/platform
+CXXFLAGS += -I$(APPDIR)/uav/lib/utils
+CXXFLAGS += -I$(APPDIR)/uav/drivers
+
+# C++ configuration
+CXXEXT = .cpp
+CXXFLAGS += -std=c++17 -fno-rtti -fno-exceptions -fno-threadsafe-statics
+
+include $(APPDIR)/Application.mk

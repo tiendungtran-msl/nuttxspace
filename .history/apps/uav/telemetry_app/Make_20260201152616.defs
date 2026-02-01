@@ -1,0 +1,7 @@
+############################################################################
+# apps/uav/telemetry_app/Make.defs
+############################################################################
+
+ifneq ($(CONFIG_UAV_TELEMETRY_APP),)
+CONFIGURED_APPS += $(APPDIR)/uav/telemetry_app
+endif

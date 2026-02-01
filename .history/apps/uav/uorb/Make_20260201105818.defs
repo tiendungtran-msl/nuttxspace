@@ -1,0 +1,10 @@
+############################################################################
+# apps/uav/uorb/Make.defs
+#
+# uORB Message Bus Make Definitions
+#
+############################################################################
+
+ifneq ($(CONFIG_UAV_UORB),)
+CONFIGURED_APPS += $(APPDIR)/uav/uorb
+endif

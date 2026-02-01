@@ -1,0 +1,36 @@
+############################################################################
+# apps/uav/sensors_app/Makefile
+#
+# Sensors Application - Build configuration
+#
+# MỤC ĐÍCH:
+# - Build sensors_app như một NuttX builtin application
+# - Link với uORB library
+# - Link với device drivers
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# App configuration
+PROGNAME  = sensors
+PRIORITY  = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_UAV_SENSORS_STACKSIZE)
+MODULE    = $(CONFIG_UAV_SENSORS_APP)
+
+# Main source
+MAINSRC = sensors_main.cpp
+
+# Additional C++ sources (future)
+# CXXSRCS += imu_publisher.cpp
+
+# Include paths
+CXXFLAGS += -I$(APPDIR)/uav
+CXXFLAGS += -I$(APPDIR)/uav/uorb
+CXXFLAGS += -I$(APPDIR)/uav/drivers
+
+# C++ configuration
+CXXEXT = .cpp
+CXXFLAGS += -std=c++17 -fno-rtti -fno-exceptions -fno-threadsafe-statics
+
+include $(APPDIR)/Application.mk

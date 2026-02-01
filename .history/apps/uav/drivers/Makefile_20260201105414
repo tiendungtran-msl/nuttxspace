@@ -1,0 +1,17 @@
+############################################################################
+# apps/uav/drivers/Makefile
+#
+# Drivers Build - Placeholder
+#
+# MỤC ĐÍCH:
+# - Build tất cả hardware drivers
+# - Hiện tại là placeholder, sẽ thêm subdirs sau
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# Subdirectories - sẽ thêm sau
+# SUBDIRS = imu mag baro gps
+
+include $(APPDIR)/Directory.mk

@@ -1,0 +1,17 @@
+############################################################################
+# apps/uav/lib/Makefile
+#
+# Shared Libraries Build
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# Subdirectories
+SUBDIRS = mathlib calibration platform
+
+ifeq ($(CONFIG_UAV),y)
+CONFIGURED_APPS += $(SUBDIRS)
+endif
+
+include $(APPDIR)/Directory.mk
+

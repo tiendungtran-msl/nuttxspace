@@ -1,0 +1,26 @@
+############################################################################
+# apps/uav/estimator_app/Makefile
+#
+# Estimator Application Build
+#
+# MỤC ĐÍCH:
+# - Build estimator_app thành NSH command "estimator"
+# - Link với uORB shared library
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# Tên ứng dụng (command trên NSH)
+PROGNAME = estimator
+PRIORITY = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_UAV_ESTIMATOR_STACKSIZE)
+MODULE = $(CONFIG_UAV_ESTIMATOR)
+
+# Main entry point
+MAINSRC = estimator_main.cpp
+
+# Thêm CXXFLAGS
+CXXFLAGS += -I$(APPDIR)/uav
+
+include $(APPDIR)/Application.mk

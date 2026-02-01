@@ -1,0 +1,26 @@
+############################################################################
+# apps/uav/state_app/Makefile
+#
+# State Application Build
+#
+# MỤC ĐÍCH:
+# - Build state_app thành NSH command "state"
+# - Link với uORB shared library
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# Tên ứng dụng (command trên NSH)
+PROGNAME = state
+PRIORITY = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_UAV_STATE_STACKSIZE)
+MODULE = $(CONFIG_UAV_STATE)
+
+# Main entry point
+MAINSRC = state_main.cpp
+
+# Thêm CXXFLAGS
+CXXFLAGS += -I$(APPDIR)/uav
+
+include $(APPDIR)/Application.mk

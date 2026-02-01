@@ -1,0 +1,10 @@
+############################################################################
+# apps/uav/drivers/Make.defs
+#
+# Drivers Make Definitions
+#
+############################################################################
+
+ifneq ($(CONFIG_UAV_DRIVERS),)
+CONFIGURED_APPS += $(APPDIR)/uav/drivers
+endif

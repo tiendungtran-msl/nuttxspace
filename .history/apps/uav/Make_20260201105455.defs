@@ -1,0 +1,18 @@
+############################################################################
+# apps/uav/Make.defs
+#
+# UAV Avionics Stack - Build definitions
+#
+# MỤC ĐÍCH:
+# - Include tất cả subdirectories vào build system
+# - Mỗi component có Make.defs riêng
+#
+############################################################################
+
+# Include UAV vào CONFIGURED_APPS
+ifneq ($(CONFIG_UAV),)
+CONFIGURED_APPS += $(APPDIR)/uav
+endif
+
+# Include subdirectories' Make.defs
+include $(wildcard $(APPDIR)/uav/*/Make.defs)

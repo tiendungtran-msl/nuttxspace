@@ -1,3 +1,0 @@
-ifneq ($(),)
-CONFIGURED_APPS += $(APPDIR)/examples/i2sloop
-endif

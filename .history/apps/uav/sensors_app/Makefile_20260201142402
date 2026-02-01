@@ -1,0 +1,36 @@
+############################################################################
+# apps/uav/sensors_app/Makefile
+#
+# UAV Sensors Application - Time-Triggered Architecture
+#
+# MỤC ĐÍCH:
+# - Thu thập dữ liệu từ các cảm biến (IMU, Baro, Mag, GPS)
+# - Áp dụng calibration và filtering
+# - Fusion nhiều IMU
+# - Publish sensor_combined cho EKF
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# App configuration
+PROGNAME  = sensors
+PRIORITY  = SCHED_PRIORITY_DEFAULT
+STACKSIZE = $(CONFIG_UAV_SENSORS_STACKSIZE)
+MODULE    = $(CONFIG_UAV_SENSORS_APP)
+
+# Main source
+MAINSRC = sensors_main.cpp
+
+# Include paths
+CXXFLAGS += -I$(APPDIR)
+CXXFLAGS += -I$(APPDIR)/uav
+CXXFLAGS += -I$(APPDIR)/uav/uorb
+CXXFLAGS += -I$(APPDIR)/uav/lib
+CXXFLAGS += -I$(APPDIR)/uav/drivers
+
+# C++ configuration
+CXXEXT = .cpp
+CXXFLAGS += -std=c++17 -fno-rtti -fno-exceptions -fno-threadsafe-statics
+
+include $(APPDIR)/Application.mk

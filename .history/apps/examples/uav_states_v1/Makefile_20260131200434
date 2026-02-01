@@ -1,0 +1,35 @@
+############################################################################
+# apps/examples/uav_states_v1/Makefile
+#
+# UAV Attitude Estimation - Minimal PX4-style Structure
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+CXXEXT = .cpp
+
+# Single program
+PROGNAME  = uav_attitude
+PRIORITY  = SCHED_PRIORITY_DEFAULT
+STACKSIZE = 16384
+MODULE    = $(CONFIG_EXAMPLES_UAV_STATES_V1)
+
+# Main application
+MAINSRC = uav_attitude_app.cpp
+
+# C sources
+CSRCS = platforms/nuttx/hrt/hrt.c
+
+# C++ sources (driver + libraries)
+CXXSRCS = \
+	lib/drivers/spi/spi_device.cpp \
+	lib/attitude_estimator/attitude_estimator_q.cpp \
+	drivers/imu/icm42688p/icm42688p.cpp \
+	calibration/sensor_calibration.cpp
+
+# Compiler flags
+CXXFLAGS += -std=c++17 -fno-rtti -fno-exceptions -fno-threadsafe-statics
+CXXFLAGS += -I.
+CFLAGS   += -I.
+
+include $(APPDIR)/Application.mk

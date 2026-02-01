@@ -1,3 +1,0 @@
-ifneq ($(CONFIG_EXAMPLES_STM32_MULTITASK),)
-CONFIGURED_APPS += $(APPDIR)/examples/stm32_multitask
-endif

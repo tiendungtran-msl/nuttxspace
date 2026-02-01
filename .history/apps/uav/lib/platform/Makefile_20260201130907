@@ -1,0 +1,14 @@
+############################################################################
+# apps/uav/lib/platform/Makefile
+#
+# Platform abstraction (HRT, SPI config)
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+CSRCS   = hrt.c
+CXXSRCS =
+
+CFLAGS += -I$(APPDIR)
+
+include $(APPDIR)/Application.mk

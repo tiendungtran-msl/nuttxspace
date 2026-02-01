@@ -1,9 +1,9 @@
 #pragma once
 
 #include "spi_types.hpp"
-#include "../drivers_framework/device_id.hpp"
-#include "../utils/debug.hpp"
-#include "../utils/critical.hpp"
+#include "../../drivers_framework/device_id.hpp"
+#include "../../utils/debug.hpp"
+#include "../../utils/critical.hpp"
 
 #include <nuttx/spi/spi.h>
 #include <errno.h>

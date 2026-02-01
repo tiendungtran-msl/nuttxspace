@@ -1,3 +1,0 @@
-ifneq ($(CONFIG_EXAMPLES_NUTTX_RTOS_APP),)
-CONFIGURED_APPS += $(APPDIR)/examples/nuttx_rtos_app
-endif

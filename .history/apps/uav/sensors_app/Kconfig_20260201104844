@@ -1,0 +1,49 @@
+#
+# apps/uav/sensors_app/Kconfig
+#
+# Sensors Application - Kconfig
+#
+
+config UAV_SENSORS_APP
+	bool "Sensors Application"
+	default y
+	depends on UAV_UORB
+	---help---
+		Application thu thập dữ liệu cảm biến (IMU, Mag, Baro, GPS).
+		Chạy ở priority cao nhất trong hệ thống.
+
+if UAV_SENSORS_APP
+
+config UAV_SENSORS_PRIORITY
+	int "Sensors task priority"
+	default 250
+	range 1 255
+	---help---
+		Priority của sensors task. Nên là cao nhất trong hệ thống
+		để đảm bảo timing determinism khi đọc cảm biến.
+
+config UAV_SENSORS_STACKSIZE
+	int "Sensors task stack size (bytes)"
+	default 4096
+	---help---
+		Stack size cho sensors task.
+		4KB đủ cho hầu hết trường hợp.
+
+config UAV_IMU_RATE_HZ
+	int "IMU polling rate (Hz)"
+	default 1000
+	range 100 8000
+	---help---
+		Tần số đọc IMU. Khuyến nghị:
+		- 1000 Hz cho flight control
+		- 100-400 Hz cho logging/monitoring
+
+config UAV_NUM_IMUS
+	int "Number of IMU sensors"
+	default 4
+	range 1 4
+	---help---
+		Số lượng IMU trong hệ thống.
+		Multi-IMU cho redundancy và voting.
+
+endif # UAV_SENSORS_APP

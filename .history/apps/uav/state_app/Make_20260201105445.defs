@@ -1,0 +1,10 @@
+############################################################################
+# apps/uav/state_app/Make.defs
+#
+# State App Make Definitions
+#
+############################################################################
+
+ifneq ($(CONFIG_UAV_STATE),)
+CONFIGURED_APPS += $(APPDIR)/uav/state_app
+endif

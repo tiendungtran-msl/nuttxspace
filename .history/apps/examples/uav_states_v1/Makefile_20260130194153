@@ -1,0 +1,43 @@
+############################################################################
+# apps/examples/uav_states_v1/Makefile
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# This example uses .cpp sources (NuttX apps default to .cxx)
+CXXEXT = .cpp
+
+# Program names (multiple programs)
+PROGNAME  += uav_attitude
+PROGNAME  += test_icm_quad
+PRIORITY  += SCHED_PRIORITY_DEFAULT
+PRIORITY  += SCHED_PRIORITY_DEFAULT
+STACKSIZE += 16384
+STACKSIZE += 8192
+MODULE    += $(CONFIG_EXAMPLES_UAV_STATES_V1)
+MODULE    += $(CONFIG_EXAMPLES_UAV_STATES_V1)
+
+# Main sources (relative to THIS directory)
+MAINSRC += uav_attitude_app.cpp
+MAINSRC += test_icm42688p_quad.cpp
+
+# C sources (relative to THIS directory)
+CSRCS = platforms/nuttx/hrt/hrt.c
+
+# C++ sources (relative to THIS directory)
+CXXSRCS = \
+	lib/drivers/spi/spi_device.cpp \
+	lib/orb/orb.cpp \
+	lib/orb/topics.cpp \
+	lib/attitude_estimator/attitude_estimator_q.cpp \
+	drivers/imu/icm42688p/icm42688p.cpp \
+	calibration/sensor_calibration.cpp
+
+# C++ flags
+CXXFLAGS += -std=c++17 -fno-rtti -fno-exceptions -fno-threadsafe-statics
+
+# Include paths
+CXXFLAGS += -I.
+CFLAGS   += -I.
+
+include $(APPDIR)/Application.mk

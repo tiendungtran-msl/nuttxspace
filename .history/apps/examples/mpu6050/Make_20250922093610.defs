@@ -1,3 +1,0 @@
-ifneq ($(CONFIG_EXAMPLES_MPU),6050
-CONFIGURED_APPS += $(APPDIR)/examples/mqttc
-endif

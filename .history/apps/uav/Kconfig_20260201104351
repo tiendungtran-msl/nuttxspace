@@ -1,0 +1,118 @@
+#
+# apps/uav/Kconfig
+#
+# UAV Avionics Stack - Cấu hình Kconfig
+#
+# MỤC ĐÍCH:
+# - Cho phép enable/disable từng component qua menuconfig
+# - Cấu hình tham số cho từng app
+#
+
+menuconfig UAV
+	bool "UAV Avionics Stack"
+	default n
+	---help---
+		Hệ thống phần mềm điều khiển UAV theo kiến trúc multi-app.
+		Tham chiếu từ PX4 Autopilot, viết lại cho NuttX.
+
+if UAV
+
+config UAV_UORB
+	bool "uORB Message Bus"
+	default y
+	---help---
+		Hệ thống publish/subscribe để giao tiếp giữa các app.
+		Bắt buộc phải enable nếu dùng bất kỳ UAV app nào.
+
+config UAV_SENSORS_APP
+	bool "Sensors Application"
+	default y
+	depends on UAV_UORB
+	---help---
+		App thu thập dữ liệu cảm biến (IMU, Mag, Baro, GPS).
+		Chạy ở priority cao nhất, tần số 1kHz.
+
+if UAV_SENSORS_APP
+
+config UAV_SENSORS_PRIORITY
+	int "Sensors task priority"
+	default 250
+	---help---
+		Priority của sensors task. Nên cao nhất trong hệ thống.
+
+config UAV_SENSORS_STACKSIZE
+	int "Sensors task stack size"
+	default 4096
+	---help---
+		Stack size cho sensors task (bytes).
+
+config UAV_IMU_RATE_HZ
+	int "IMU polling rate (Hz)"
+	default 1000
+	---help---
+		Tần số đọc IMU. Khuyến nghị 1000Hz cho flight control.
+
+config UAV_NUM_IMUS
+	int "Number of IMU sensors"
+	default 4
+	range 1 4
+	---help---
+		Số lượng IMU trong hệ thống (1-4).
+
+endif # UAV_SENSORS_APP
+
+config UAV_ESTIMATOR_APP
+	bool "Estimator Application"
+	default y
+	depends on UAV_SENSORS_APP
+	---help---
+		App ước lượng trạng thái (EKF2 + Attitude).
+		Fusion dữ liệu từ sensors, output attitude và position.
+
+if UAV_ESTIMATOR_APP
+
+config UAV_ESTIMATOR_PRIORITY
+	int "Estimator task priority"
+	default 240
+	---help---
+		Priority của estimator task.
+
+config UAV_ESTIMATOR_STACKSIZE
+	int "Estimator task stack size"
+	default 8192
+	---help---
+		Stack size cho estimator (cần lớn vì EKF matrix).
+
+config UAV_USE_EKF2
+	bool "Use EKF2 for state estimation"
+	default y
+	---help---
+		Dùng Extended Kalman Filter 2 cho full state estimation.
+		Nếu disable, chỉ dùng complementary filter cho attitude.
+
+endif # UAV_ESTIMATOR_APP
+
+config UAV_STATE_APP
+	bool "State Manager Application"
+	default y
+	depends on UAV_ESTIMATOR_APP
+	---help---
+		App quản lý trạng thái vehicle (health, mode, arming).
+
+if UAV_STATE_APP
+
+config UAV_STATE_PRIORITY
+	int "State manager task priority"
+	default 220
+	---help---
+		Priority của state manager task.
+
+config UAV_STATE_STACKSIZE
+	int "State manager task stack size"
+	default 4096
+	---help---
+		Stack size cho state manager.
+
+endif # UAV_STATE_APP
+
+endif # UAV

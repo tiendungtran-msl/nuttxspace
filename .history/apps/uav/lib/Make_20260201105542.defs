@@ -1,0 +1,8 @@
+############################################################################
+# apps/uav/lib/Make.defs
+#
+# Shared Libraries Make Definitions
+#
+############################################################################
+
+# Lib được include qua mathlib, geo, ecl Make.defs nếu có

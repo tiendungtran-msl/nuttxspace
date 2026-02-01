@@ -1,0 +1,13 @@
+############################################################################
+# apps/uav/lib/Makefile
+#
+# Shared Libraries Build - Placeholder
+#
+############################################################################
+
+include $(APPDIR)/Make.defs
+
+# Subdirectories - sẽ thêm khi implement
+# SUBDIRS = mathlib geo ecl
+
+include $(APPDIR)/Directory.mk

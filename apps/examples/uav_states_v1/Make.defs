@@ -1,0 +1,3 @@
+ifneq ($(CONFIG_EXAMPLES_UAV_STATES_V1),)
+CONFIGURED_APPS += $(APPDIR)/examples/uav_states_v1
+endif

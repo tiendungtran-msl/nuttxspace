@@ -1,0 +1,30 @@
+#
+# apps/uav/Kconfig
+#
+# UAV Avionics Stack - Cấu hình Kconfig
+#
+# MỤC ĐÍCH:
+# - Cho phép enable/disable từng component qua menuconfig
+# - Cấu hình tham số cho từng app
+#
+
+menuconfig UAV
+	bool "UAV Avionics Stack"
+	default n
+	---help---
+		Hệ thống phần mềm điều khiển UAV theo kiến trúc multi-app.
+		Tham chiếu từ PX4 Autopilot, viết lại cho NuttX.
+
+if UAV
+
+# LƯU Ý:
+# - Không định nghĩa lại các symbol ở đây để tránh trùng lặp.
+# - Mỗi component có Kconfig riêng, được source vào menu UAV.
+
+source "/home/msi-leibniz/nuttxspace/apps/uav/uorb/Kconfig"
+source "/home/msi-leibniz/nuttxspace/apps/uav/drivers/Kconfig"
+source "/home/msi-leibniz/nuttxspace/apps/uav/sensors_app/Kconfig"
+source "/home/msi-leibniz/nuttxspace/apps/uav/estimator_app/Kconfig"
+source "/home/msi-leibniz/nuttxspace/apps/uav/state_app/Kconfig"
+
+endif # UAV

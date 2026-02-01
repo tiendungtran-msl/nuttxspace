@@ -1,3 +1,0 @@
-ifneq ($(CONFIG_EXAMPLES_STM32_BLINK),)
-CONFIGURED_APPS += $(APPDIR)/examples/stm32_blink
-endif
