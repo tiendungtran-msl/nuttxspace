@@ -176,8 +176,14 @@ class TelemetrySimulator(QObject):
             timestamp_us=int(t * 1_000_000),
             sequence=self._sequence & 0xFFFF,
             
-            # 4 IMUs
-            imu=imu_list,
+            # IMU
+            gyro_x=gyro_x,
+            gyro_y=gyro_y,
+            gyro_z=gyro_z,
+            accel_x=ax,
+            accel_y=ay,
+            accel_z=az,
+            imu_temp=25.0 + 2.0 * math.sin(0.01 * t),
             
             # Magnetometer
             mag_x=mx,

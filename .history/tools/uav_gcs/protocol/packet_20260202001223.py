@@ -63,43 +63,20 @@ class ImuData:
 
 @dataclass
 class TelemetryData:
-    """Parsed telemetry packet data with 4 individual IMUs"""
+    """Parsed telemetry packet data"""
     
     # Header
     sequence: int = 0
     timestamp_us: int = 0
     
-    # 4 Individual IMUs (raw data from chips)
-    imu: List[ImuData] = field(default_factory=lambda: [ImuData() for _ in range(TELEM_NUM_IMUS)])
-    
-    # Legacy single-IMU access (for backward compatibility - uses IMU 0)
-    @property
-    def gyro_x(self) -> float:
-        return self.imu[0].gyro_x
-    
-    @property
-    def gyro_y(self) -> float:
-        return self.imu[0].gyro_y
-    
-    @property
-    def gyro_z(self) -> float:
-        return self.imu[0].gyro_z
-    
-    @property
-    def accel_x(self) -> float:
-        return self.imu[0].accel_x
-    
-    @property
-    def accel_y(self) -> float:
-        return self.imu[0].accel_y
-    
-    @property
-    def accel_z(self) -> float:
-        return self.imu[0].accel_z
-    
-    @property
-    def imu_temp(self) -> float:
-        return self.imu[0].temperature
+    # IMU
+    gyro_x: float = 0.0
+    gyro_y: float = 0.0
+    gyro_z: float = 0.0
+    accel_x: float = 0.0
+    accel_y: float = 0.0
+    accel_z: float = 0.0
+    imu_temp: float = 0.0
     
     # Mag
     mag_x: float = 0.0
@@ -188,7 +165,7 @@ def crc16_ccitt(data: bytes, initial: int = 0xFFFF) -> int:
 
 def decode_packet(raw: bytes) -> Optional[TelemetryData]:
     """
-    Decode 212-byte binary packet to TelemetryData.
+    Decode 128-byte binary packet to TelemetryData.
     
     Returns None if packet is invalid.
     """
@@ -203,20 +180,9 @@ def decode_packet(raw: bytes) -> Optional[TelemetryData]:
     if magic != TELEM_MAGIC_START:
         return None
     
-    # Parse 4 IMUs
-    imu_list = []
-    for i in range(TELEM_NUM_IMUS):
-        imu_raw = struct.unpack_from(IMU_FMT, raw, offset)
-        offset += IMU_SIZE
-        imu_list.append(ImuData(
-            gyro_x=imu_raw[0],
-            gyro_y=imu_raw[1],
-            gyro_z=imu_raw[2],
-            accel_x=imu_raw[3],
-            accel_y=imu_raw[4],
-            accel_z=imu_raw[5],
-            temperature=imu_raw[6]
-        ))
+    # Parse IMU
+    imu = struct.unpack_from(IMU_FMT, raw, offset)
+    offset += IMU_SIZE
     
     # Parse Mag
     mag = struct.unpack_from(MAG_FMT, raw, offset)
@@ -254,7 +220,13 @@ def decode_packet(raw: bytes) -> Optional[TelemetryData]:
         sequence=seq,
         timestamp_us=timestamp,
         
-        imu=imu_list,
+        gyro_x=imu[0],
+        gyro_y=imu[1],
+        gyro_z=imu[2],
+        accel_x=imu[3],
+        accel_y=imu[4],
+        accel_z=imu[5],
+        imu_temp=imu[6],
         
         mag_x=mag[0],
         mag_y=mag[1],

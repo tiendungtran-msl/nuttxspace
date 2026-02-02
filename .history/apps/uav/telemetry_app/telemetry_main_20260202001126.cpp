@@ -466,21 +466,13 @@ static int telemetry_thread_main(int argc, char *argv[])
         syslog(LOG_WARNING, "[telemetry] Failed to subscribe vehicle_attitude\n");
     }
 
-    /* Subscribe to 4 individual IMU topics */
-    for (int i = 0; i < TELEM_NUM_IMUS; i++)
+    ctx->imu_sub = uorb::orb_subscribe(ORB_ID(sensor_imu));
+    if (ctx->imu_sub < 0)
     {
-        ctx->imu_sub[i] = uorb::orb_subscribe_multi(ORB_ID(sensor_imu), i);
-        if (ctx->imu_sub[i] < 0)
-        {
-            syslog(LOG_WARNING, "[telemetry] Failed to subscribe sensor_imu[%d]\n", i);
-        }
-        else
-        {
-            syslog(LOG_INFO, "[telemetry] Subscribed to sensor_imu[%d]\n", i);
-        }
+        syslog(LOG_WARNING, "[telemetry] Failed to subscribe sensor_imu\n");
     }
 
-    syslog(LOG_INFO, "[telemetry] uORB subscriptions ready (4 IMUs)\n");
+    syslog(LOG_INFO, "[telemetry] uORB subscriptions ready\n");
 
     /*=========================================================================
      * PHASE 4: Main loop
@@ -535,13 +527,10 @@ static int telemetry_thread_main(int argc, char *argv[])
         ctx->attitude_sub = -1;
     }
 
-    for (int i = 0; i < TELEM_NUM_IMUS; i++)
+    if (ctx->imu_sub >= 0)
     {
-        if (ctx->imu_sub[i] >= 0)
-        {
-            uorb::orb_unsubscribe(ctx->imu_sub[i]);
-            ctx->imu_sub[i] = -1;
-        }
+        uorb::orb_unsubscribe(ctx->imu_sub);
+        ctx->imu_sub = -1;
     }
 
     if (ctx->uart_fd >= 0)

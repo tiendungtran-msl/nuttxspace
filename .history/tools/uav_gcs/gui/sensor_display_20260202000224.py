@@ -611,18 +611,17 @@ class FastSensorDisplay(QWidget):
         self._timestamp.set_value(data.timestamp_us / 1_000_000.0)
         self._sequence.set_value(data.sequence)
 
-        # IMU Fusion panel - 4 IMUs from telemetry packet
-        # Each IMU contains raw data directly from ICM42688P chip
-        for i in range(4):
-            if i < len(data.imu):
-                imu = data.imu[i]
-                self._imu_fusion.update_imu_data(
-                    i,
-                    imu.gyro_x, imu.gyro_y, imu.gyro_z,
-                    imu.accel_x, imu.accel_y, imu.accel_z
-                )
-            else:
-                self._imu_fusion.clear_imu_data(i)
+        # IMU Fusion panel
+        # IMPORTANT: In live mode, GUI must not modify/perturb MCU data.
+        # Current telemetry packet contains only ONE IMU (already fused on MCU).
+        # We map it to IMU #0; IMU #1..#3 remain unavailable until firmware sends them.
+        self._imu_fusion.update_imu_data(
+            0,
+            data.gyro_x, data.gyro_y, data.gyro_z,
+            data.accel_x, data.accel_y, data.accel_z
+        )
+        for i in (1, 2, 3):
+            self._imu_fusion.clear_imu_data(i)
         self._imu_fusion.update_fused()
     
     def update_rate(self, rate_hz: float):

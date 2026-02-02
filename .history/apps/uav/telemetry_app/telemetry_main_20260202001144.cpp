@@ -535,13 +535,10 @@ static int telemetry_thread_main(int argc, char *argv[])
         ctx->attitude_sub = -1;
     }
 
-    for (int i = 0; i < TELEM_NUM_IMUS; i++)
+    if (ctx->imu_sub >= 0)
     {
-        if (ctx->imu_sub[i] >= 0)
-        {
-            uorb::orb_unsubscribe(ctx->imu_sub[i]);
-            ctx->imu_sub[i] = -1;
-        }
+        uorb::orb_unsubscribe(ctx->imu_sub);
+        ctx->imu_sub = -1;
     }
 
     if (ctx->uart_fd >= 0)

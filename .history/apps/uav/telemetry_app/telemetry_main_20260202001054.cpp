@@ -91,12 +91,12 @@ struct TelemetryContext
     int combined_sub;
     int status_sub;
     int attitude_sub;
-    int imu_sub[TELEM_NUM_IMUS];    /* 4 individual IMU subscriptions */
+    int imu_sub;
 
     /* Cached sensor data - giữ giá trị cuối cùng */
     sensor_combined_s cached_combined;
     vehicle_attitude_s cached_attitude;
-    sensor_imu_s cached_imu[TELEM_NUM_IMUS];    /* 4 IMU data */
+    sensor_imu_s cached_imu;
     system_status_s cached_status;
 
     /* Pre-allocated packet */
@@ -122,6 +122,7 @@ struct TelemetryContext
         combined_sub(-1),
         status_sub(-1),
         attitude_sub(-1),
+        imu_sub(-1),
         sequence(0),
         should_exit(false),
         is_running(false),
@@ -134,12 +135,8 @@ struct TelemetryContext
         memset(&packet, 0, sizeof(packet));
         memset(&cached_combined, 0, sizeof(cached_combined));
         memset(&cached_attitude, 0, sizeof(cached_attitude));
+        memset(&cached_imu, 0, sizeof(cached_imu));
         memset(&cached_status, 0, sizeof(cached_status));
-        for (int i = 0; i < TELEM_NUM_IMUS; i++)
-        {
-            imu_sub[i] = -1;
-            memset(&cached_imu[i], 0, sizeof(sensor_imu_s));
-        }
     }
 
     void reset()
@@ -148,10 +145,7 @@ struct TelemetryContext
         combined_sub = -1;
         status_sub = -1;
         attitude_sub = -1;
-        for (int i = 0; i < TELEM_NUM_IMUS; i++)
-        {
-            imu_sub[i] = -1;
-        }
+        imu_sub = -1;
         sequence = 0;
         should_exit = false;
         is_running = false;
@@ -239,34 +233,10 @@ static void fill_packet_data(TelemetryContext *ctx)
     telem_packet_init(pkt);
 
     /*=========================================================================
-     * IMU DATA - đọc 4 IMU riêng lẻ từ sensor_imu topics
-     * Gửi dữ liệu raw từ chip, không phải fused
+     * IMU DATA - từ sensor_combined và sensor_imu topics
+     * Luôn cập nhật cache nếu có data mới, sau đó dùng cache
      *=========================================================================*/
 
-    for (int i = 0; i < TELEM_NUM_IMUS; i++)
-    {
-        if (ctx->imu_sub[i] >= 0)
-        {
-            bool updated = false;
-            uorb::orb_check(ctx->imu_sub[i], &updated);
-
-            if (updated)
-            {
-                uorb::orb_copy(ORB_ID(sensor_imu), ctx->imu_sub[i], &ctx->cached_imu[i]);
-            }
-        }
-
-        /* Luôn sử dụng cached data cho mỗi IMU */
-        pkt->imu[i].gyro_x = ctx->cached_imu[i].gyro[0];
-        pkt->imu[i].gyro_y = ctx->cached_imu[i].gyro[1];
-        pkt->imu[i].gyro_z = ctx->cached_imu[i].gyro[2];
-        pkt->imu[i].accel_x = ctx->cached_imu[i].accel[0];
-        pkt->imu[i].accel_y = ctx->cached_imu[i].accel[1];
-        pkt->imu[i].accel_z = ctx->cached_imu[i].accel[2];
-        pkt->imu[i].temperature = ctx->cached_imu[i].temperature;
-    }
-
-    /* Cũng đọc combined để có fused data cho attitude */
     if (ctx->combined_sub >= 0)
     {
         bool updated = false;
@@ -277,6 +247,27 @@ static void fill_packet_data(TelemetryContext *ctx)
             uorb::orb_copy(ORB_ID(sensor_combined), ctx->combined_sub, &ctx->cached_combined);
         }
     }
+
+    /* Luôn sử dụng cached data */
+    pkt->imu.gyro_x = ctx->cached_combined.gyro[0];
+    pkt->imu.gyro_y = ctx->cached_combined.gyro[1];
+    pkt->imu.gyro_z = ctx->cached_combined.gyro[2];
+    pkt->imu.accel_x = ctx->cached_combined.accel[0];
+    pkt->imu.accel_y = ctx->cached_combined.accel[1];
+    pkt->imu.accel_z = ctx->cached_combined.accel[2];
+
+    /* Temperature từ sensor_imu */
+    if (ctx->imu_sub >= 0)
+    {
+        bool updated = false;
+        uorb::orb_check(ctx->imu_sub, &updated);
+
+        if (updated)
+        {
+            uorb::orb_copy(ORB_ID(sensor_imu), ctx->imu_sub, &ctx->cached_imu);
+        }
+    }
+    pkt->imu.temperature = ctx->cached_imu.temperature;
 
     /*=========================================================================
      * ATTITUDE DATA - từ vehicle_attitude topic
@@ -466,21 +457,13 @@ static int telemetry_thread_main(int argc, char *argv[])
         syslog(LOG_WARNING, "[telemetry] Failed to subscribe vehicle_attitude\n");
     }
 
-    /* Subscribe to 4 individual IMU topics */
-    for (int i = 0; i < TELEM_NUM_IMUS; i++)
+    ctx->imu_sub = uorb::orb_subscribe(ORB_ID(sensor_imu));
+    if (ctx->imu_sub < 0)
     {
-        ctx->imu_sub[i] = uorb::orb_subscribe_multi(ORB_ID(sensor_imu), i);
-        if (ctx->imu_sub[i] < 0)
-        {
-            syslog(LOG_WARNING, "[telemetry] Failed to subscribe sensor_imu[%d]\n", i);
-        }
-        else
-        {
-            syslog(LOG_INFO, "[telemetry] Subscribed to sensor_imu[%d]\n", i);
-        }
+        syslog(LOG_WARNING, "[telemetry] Failed to subscribe sensor_imu\n");
     }
 
-    syslog(LOG_INFO, "[telemetry] uORB subscriptions ready (4 IMUs)\n");
+    syslog(LOG_INFO, "[telemetry] uORB subscriptions ready\n");
 
     /*=========================================================================
      * PHASE 4: Main loop
@@ -535,13 +518,10 @@ static int telemetry_thread_main(int argc, char *argv[])
         ctx->attitude_sub = -1;
     }
 
-    for (int i = 0; i < TELEM_NUM_IMUS; i++)
+    if (ctx->imu_sub >= 0)
     {
-        if (ctx->imu_sub[i] >= 0)
-        {
-            uorb::orb_unsubscribe(ctx->imu_sub[i]);
-            ctx->imu_sub[i] = -1;
-        }
+        uorb::orb_unsubscribe(ctx->imu_sub);
+        ctx->imu_sub = -1;
     }
 
     if (ctx->uart_fd >= 0)

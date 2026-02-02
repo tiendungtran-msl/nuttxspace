@@ -178,27 +178,27 @@ struct __attribute__((packed)) telem_footer_s
 };
 
 /**
- * @brief Complete telemetry packet (212 bytes)
+ * @brief Complete telemetry packet (128 bytes)
  */
 struct __attribute__((packed)) telemetry_packet_s
 {
-    struct telem_header_s   header;             /*   8 bytes */
-    struct telem_imu_s      imu[TELEM_NUM_IMUS];/* 112 bytes (4 × 28) */
-    struct telem_mag_s      mag;                /*  12 bytes */
-    struct telem_baro_s     baro;               /*   8 bytes */
-    struct telem_gps_s      gps;                /*  24 bytes */
-    struct telem_attitude_s attitude;           /*  32 bytes */
-    struct telem_status_s   status;             /*  12 bytes */
-    struct telem_footer_s   footer;             /*   4 bytes */
-};                                              /* Total: 212 bytes */
+    struct telem_header_s   header;     /*   8 bytes */
+    struct telem_imu_s      imu;        /*  28 bytes */
+    struct telem_mag_s      mag;        /*  12 bytes */
+    struct telem_baro_s     baro;       /*   8 bytes */
+    struct telem_gps_s      gps;        /*  24 bytes */
+    struct telem_attitude_s attitude;   /*  32 bytes */
+    struct telem_status_s   status;     /*  12 bytes */
+    struct telem_footer_s   footer;     /*   4 bytes */
+};                                      /* Total: 128 bytes */
 
 /* Verify packet size at compile time */
 #ifdef __cplusplus
 static_assert(sizeof(struct telemetry_packet_s) == TELEM_PACKET_SIZE,
-               "Telemetry packet must be 212 bytes");
+               "Telemetry packet must be 128 bytes");
 #else
 _Static_assert(sizeof(struct telemetry_packet_s) == TELEM_PACKET_SIZE,
-               "Telemetry packet must be 212 bytes");
+               "Telemetry packet must be 128 bytes");
 #endif
 
 /****************************************************************************

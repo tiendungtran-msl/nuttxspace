@@ -195,10 +195,10 @@ struct __attribute__((packed)) telemetry_packet_s
 /* Verify packet size at compile time */
 #ifdef __cplusplus
 static_assert(sizeof(struct telemetry_packet_s) == TELEM_PACKET_SIZE,
-               "Telemetry packet must be 212 bytes");
+               "Telemetry packet must be 128 bytes");
 #else
 _Static_assert(sizeof(struct telemetry_packet_s) == TELEM_PACKET_SIZE,
-               "Telemetry packet must be 212 bytes");
+               "Telemetry packet must be 128 bytes");
 #endif
 
 /****************************************************************************

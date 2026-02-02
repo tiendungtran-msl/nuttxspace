@@ -188,7 +188,7 @@ def crc16_ccitt(data: bytes, initial: int = 0xFFFF) -> int:
 
 def decode_packet(raw: bytes) -> Optional[TelemetryData]:
     """
-    Decode 212-byte binary packet to TelemetryData.
+    Decode 128-byte binary packet to TelemetryData.
     
     Returns None if packet is invalid.
     """
@@ -203,20 +203,9 @@ def decode_packet(raw: bytes) -> Optional[TelemetryData]:
     if magic != TELEM_MAGIC_START:
         return None
     
-    # Parse 4 IMUs
-    imu_list = []
-    for i in range(TELEM_NUM_IMUS):
-        imu_raw = struct.unpack_from(IMU_FMT, raw, offset)
-        offset += IMU_SIZE
-        imu_list.append(ImuData(
-            gyro_x=imu_raw[0],
-            gyro_y=imu_raw[1],
-            gyro_z=imu_raw[2],
-            accel_x=imu_raw[3],
-            accel_y=imu_raw[4],
-            accel_z=imu_raw[5],
-            temperature=imu_raw[6]
-        ))
+    # Parse IMU
+    imu = struct.unpack_from(IMU_FMT, raw, offset)
+    offset += IMU_SIZE
     
     # Parse Mag
     mag = struct.unpack_from(MAG_FMT, raw, offset)
@@ -254,7 +243,13 @@ def decode_packet(raw: bytes) -> Optional[TelemetryData]:
         sequence=seq,
         timestamp_us=timestamp,
         
-        imu=imu_list,
+        gyro_x=imu[0],
+        gyro_y=imu[1],
+        gyro_z=imu[2],
+        accel_x=imu[3],
+        accel_y=imu[4],
+        accel_z=imu[5],
+        imu_temp=imu[6],
         
         mag_x=mag[0],
         mag_y=mag[1],

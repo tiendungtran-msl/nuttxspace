@@ -11,7 +11,7 @@ from typing import Optional
 
 from PySide6.QtCore import QObject, Signal
 
-from .packet import TelemetryData, ImuData, TELEM_NUM_IMUS
+from .packet import TelemetryData
 
 
 class TelemetrySimulator(QObject):
@@ -126,25 +126,15 @@ class TelemetrySimulator(QObject):
         
         # Add noise
         import random
+        gyro_x += random.gauss(0, noise)
+        gyro_y += random.gauss(0, noise)
+        gyro_z += random.gauss(0, noise)
         
         # Simulate accelerometer (gravity + centrifugal + noise)
         # In level flight, accel ≈ [0, 0, -9.81] in body frame
         ax = 9.81 * math.sin(pitch) + random.gauss(0, 0.1)
         ay = -9.81 * math.sin(roll) * math.cos(pitch) + random.gauss(0, 0.1)
         az = -9.81 * math.cos(roll) * math.cos(pitch) + random.gauss(0, 0.1)
-        
-        # Generate 4 IMUs with slight variations (simulate real sensors)
-        imu_list = []
-        for i in range(TELEM_NUM_IMUS):
-            imu_list.append(ImuData(
-                gyro_x=gyro_x + random.gauss(0, noise),
-                gyro_y=gyro_y + random.gauss(0, noise),
-                gyro_z=gyro_z + random.gauss(0, noise),
-                accel_x=ax + random.gauss(0, 0.05),
-                accel_y=ay + random.gauss(0, 0.05),
-                accel_z=az + random.gauss(0, 0.05),
-                temperature=25.0 + 2.0 * math.sin(0.01 * t) + 0.5 * i  # slightly different temps
-            ))
         
         # Simulate magnetometer (assuming North = +X in NED)
         mag_field = 0.5  # Gauss
@@ -176,8 +166,14 @@ class TelemetrySimulator(QObject):
             timestamp_us=int(t * 1_000_000),
             sequence=self._sequence & 0xFFFF,
             
-            # 4 IMUs
-            imu=imu_list,
+            # IMU
+            gyro_x=gyro_x,
+            gyro_y=gyro_y,
+            gyro_z=gyro_z,
+            accel_x=ax,
+            accel_y=ay,
+            accel_z=az,
+            imu_temp=25.0 + 2.0 * math.sin(0.01 * t),
             
             # Magnetometer
             mag_x=mx,
