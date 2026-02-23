@@ -1,0 +1,53 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config UAV_DRIVERS_GPS
+	tristate "GPS Driver (u-blox M10N)"
+	default n
+	depends on SERIAL
+	---help---
+		Enable GPS driver for u-blox M10N GPS module.
+		Uses UBX binary protocol over UART.
+
+if UAV_DRIVERS_GPS
+
+config UAV_GPS_UART_PATH
+	string "GPS UART device path"
+	default "/dev/ttyS3"
+	---help---
+		Path to the UART device connected to the GPS module.
+		Default is /dev/ttyS3 (UART4 on STM32H7).
+
+config UAV_GPS_DEFAULT_BAUDRATE
+	int "GPS default baudrate"
+	default 9600
+	---help---
+		Initial baudrate for GPS communication.
+		The driver will auto-detect and switch to 115200.
+
+config UAV_GPS_DYNAMIC_MODEL
+	int "GPS dynamic model"
+	default 7
+	range 0 8
+	---help---
+		u-blox dynamic model for navigation:
+		0 = Portable
+		2 = Stationary
+		3 = Pedestrian
+		4 = Automotive
+		5 = Sea
+		6 = Airborne <1g
+		7 = Airborne <2g (default for UAV)
+		8 = Airborne <4g
+
+config UAV_GPS_UPDATE_RATE
+	int "GPS update rate (Hz)"
+	default 5
+	range 1 10
+	---help---
+		GPS position update rate in Hz.
+		M10N supports up to 10 Hz.
+
+endif # UAV_DRIVERS_GPS

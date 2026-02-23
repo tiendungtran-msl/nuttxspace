@@ -1,0 +1,82 @@
+#
+# apps/uav/drivers/Kconfig
+#
+# UAV Drivers Configuration
+#
+# MỤC ĐÍCH:
+# - Menu cấu hình cho tất cả drivers
+# - Chọn driver cho từng loại sensor
+#
+
+menu "UAV Drivers"
+
+config UAV_DRIVERS
+	bool "Enable UAV hardware drivers"
+	default n
+	---help---
+		Enable hardware drivers for UAV sensors.
+
+if UAV_DRIVERS
+
+comment "IMU Drivers"
+
+config UAV_DRIVER_ICM42688P
+	bool "InvenSense ICM-42688P"
+	default y
+	---help---
+		Enable driver for ICM-42688P 6-axis IMU.
+		SPI interface, up to 32 kHz ODR.
+
+config UAV_DRIVER_MPU6050
+	bool "InvenSense MPU-6050"
+	default n
+	---help---
+		Enable driver for MPU-6050 6-axis IMU.
+		I2C interface.
+
+comment "Magnetometer Drivers"
+
+config UAV_DRIVER_RM3100
+	bool "PNI RM3100"
+	default n
+	---help---
+		Enable driver for RM3100 magnetometer.
+		SPI/I2C interface, high resolution.
+
+config UAV_DRIVER_HMC5883
+	bool "Honeywell HMC5883L"
+	default n
+	---help---
+		Enable driver for HMC5883L magnetometer.
+		I2C interface.
+
+comment "Barometer Drivers"
+
+config UAV_DRIVER_MS5611
+	bool "TE MS5611"
+	default n
+	---help---
+		Enable driver for MS5611 barometer.
+		SPI/I2C interface, high resolution.
+
+config UAV_DRIVER_BMP280
+	bool "Bosch BMP280"
+	default n
+	---help---
+		Enable driver for BMP280 barometer.
+		SPI/I2C interface.
+
+comment "GPS Drivers"
+
+config UAV_DRIVER_UBLOX
+	bool "u-blox GPS"
+	default n
+	---help---
+		Enable driver for u-blox GPS receivers.
+		UART interface, UBX protocol.
+
+source "$APPDIR/uav/drivers/gps/Kconfig"
+
+endif # UAV_DRIVERS
+
+endmenu

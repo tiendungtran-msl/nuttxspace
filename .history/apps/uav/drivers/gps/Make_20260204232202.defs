@@ -1,0 +1,10 @@
+############################################################################
+# apps/uav/drivers/gps/Make.defs
+#
+# GPS Driver Make.defs
+#
+############################################################################
+
+ifneq ($(CONFIG_UAV_DRIVERS_GPS),)
+CONFIGURED_APPS += $(APPDIR)/uav/drivers/gps
+endif

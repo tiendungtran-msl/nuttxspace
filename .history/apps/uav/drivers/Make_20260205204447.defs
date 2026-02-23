@@ -1,0 +1,13 @@
+############################################################################
+# apps/uav/drivers/Make.defs
+#
+# Drivers Make Definitions
+#
+############################################################################
+
+ifneq ($(CONFIG_UAV_DRIVERS),)
+CONFIGURED_APPS += $(APPDIR)/uav/drivers
+endif
+
+# Always include subdirectory Make.defs (each has its own config check)
+include $(wildcard $(APPDIR)/uav/drivers/*/Make.defs)
