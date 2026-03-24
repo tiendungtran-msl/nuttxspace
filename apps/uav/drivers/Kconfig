@@ -43,6 +43,14 @@ config UAV_DRIVER_RM3100
 		Enable driver for RM3100 magnetometer.
 		SPI/I2C interface, high resolution.
 
+config UAV_DRIVER_BMM150
+	bool "Bosch BMM150"
+	default n
+	---help---
+		Enable driver for BMM150 3-axis magnetometer.
+		I2C interface, Bosch compensation algorithm.
+		Pins: PB6 (SCL), PB7 (SDA).
+
 config UAV_DRIVER_HMC5883
 	bool "Honeywell HMC5883L"
 	default n

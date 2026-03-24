@@ -579,13 +579,9 @@ static void gps_diag(void)
 
     if (g_gps_driver)
     {
-        (void)g_gps_driver->refreshDiagnostics(300);
-
         uint32_t msgs = g_gps_driver->getMessageCount();
         uint32_t errs = g_gps_driver->getErrorCount();
         printf("Configured: %s\n", g_gps_driver->isConfigured() ? "YES" : "NO");
-        printf("Proto>=27:  %s\n", g_gps_driver->isProtoVer27OrHigher() ? "YES" : "NO");
-        printf("HW gen:     %u\n", g_gps_driver->getBoardGeneration());
         printf("UBX msgs:   %lu\n", (unsigned long)msgs);
         printf("Parse errs: %lu\n", (unsigned long)errs);
 
@@ -622,51 +618,6 @@ static void gps_diag(void)
         if (isfinite(d->pdop)) printf("%.2f\n", d->pdop);
         else printf("N/A\n");
 
-        printf("\nMON-VER:\n");
-        if (d->mon_ver_valid)
-        {
-            printf("  module: %s\n", d->module_name[0] ? d->module_name : "unknown");
-            printf("  protocol: %u.%u\n", d->proto_major, d->proto_minor);
-        }
-        else
-        {
-            printf("  unavailable\n");
-        }
-
-        printf("\nMON-RF:\n");
-        if (d->mon_rf_valid)
-        {
-            printf("  blocks: %u\n", d->rf_blocks);
-            printf("  ant_status: %u  ant_power: %u\n", d->rf_ant_status, d->rf_ant_power);
-            printf("  jam_ind: %u  noisePerMS: %u  agcCnt: %u\n",
-                   d->rf_jam_ind, d->rf_noise_per_ms, d->rf_agc_cnt);
-        }
-        else
-        {
-            printf("  unavailable\n");
-        }
-
-        printf("\nNAV-SAT:\n");
-        if (d->nav_sat_valid)
-        {
-            printf("  total_sv: %u  used_sv: %u\n",
-                   d->nav_sat_num_svs,
-                   d->nav_sat_used_svs);
-
-            printf("  cno_mean: ");
-            if (isfinite(d->nav_sat_cno_mean)) printf("%.1f dBHz\n", d->nav_sat_cno_mean);
-            else printf("N/A\n");
-
-            printf("  cno_max: %u dBHz  best: gnss=%u svid=%u\n",
-                   d->nav_sat_cno_max,
-                   d->nav_sat_best_gnss,
-                   d->nav_sat_best_svid);
-        }
-        else
-        {
-            printf("  unavailable\n");
-        }
-
         printf("\nDiagnosis:\n");
 
         if (msgs == 0)
@@ -683,25 +634,6 @@ static void gps_diag(void)
             printf("        - Indoor / obstructed sky view\n");
             printf("        - GPS module RF front-end issue\n");
             printf("        - Cold start can take 2-12 minutes\n");
-
-            if (d->mon_rf_valid)
-            {
-                if (d->rf_ant_status >= 2)
-                {
-                    printf("  [!] MON-RF antenna status abnormal (%u)\n", d->rf_ant_status);
-                }
-
-                if (d->rf_jam_ind > 80)
-                {
-                    printf("  [!] MON-RF high jamming indicator (%u)\n", d->rf_jam_ind);
-                }
-            }
-
-            if (d->nav_sat_valid && d->nav_sat_num_svs > 0 && d->nav_sat_used_svs == 0)
-            {
-                printf("  [!] Receiver sees satellites but cannot use any (used_sv=0)\n");
-                printf("      Check antenna quality, sky visibility, and wait for ephemeris download.\n");
-            }
         }
         else if (d->fix_type == 0 && d->num_sats > 0)
         {

@@ -647,9 +647,8 @@ int GPSUbx::refreshDiagnostics(int timeout_ms)
 
     int ret1 = requestMonVer(timeout_ms);
     int ret2 = requestMonRf(timeout_ms);
-    int ret3 = requestNavSat(timeout_ms);
 
-    if (ret1 < 0 && ret2 < 0 && ret3 < 0)
+    if (ret1 < 0 && ret2 < 0)
     {
         return ret1;
     }
@@ -863,9 +862,6 @@ int GPSUbx::processMessage()
         case UBX_ID_NAV_PVT:
             return parseNavPvt(_payload, _payload_len);
 
-        case UBX_ID_NAV_SAT:
-            return parseNavSat(_payload, _payload_len);
-
         default:
             break;
         }
@@ -969,85 +965,6 @@ int GPSUbx::parseNavPvt(const uint8_t *payload, uint16_t len)
             pvt->fixType, pvt->numSV, _gps_data.lat, _gps_data.lon, _gps_data.alt_msl);
 
     return 1;  /* New data available */
-}
-
-/****************************************************************************
- * parseNavSat - Parse NAV-SAT message and compute robust summary metrics
- *
- * Why summary metrics instead of storing all satellites?
- * - Keep memory footprint low for embedded target.
- * - Still expose the most useful health indicators for diagnosis:
- *   total SV, used SV, mean/max C/N0, strongest satellite identity.
- ****************************************************************************/
-
-int GPSUbx::parseNavSat(const uint8_t *payload, uint16_t len)
-{
-    if (len < sizeof(ubx_nav_sat_hdr_s))
-    {
-        return 0;
-    }
-
-    const ubx_nav_sat_hdr_s *hdr = reinterpret_cast<const ubx_nav_sat_hdr_s *>(payload);
-    const uint16_t expect_len = (uint16_t)(sizeof(ubx_nav_sat_hdr_s) +
-                                           hdr->numSvs * sizeof(ubx_nav_sat_block_s));
-
-    if (len < expect_len)
-    {
-        GPS_LOG("NAV-SAT truncated: got %u expected %u", len, expect_len);
-        return 0;
-    }
-
-    const ubx_nav_sat_block_s *blocks =
-        reinterpret_cast<const ubx_nav_sat_block_s *>(payload + sizeof(ubx_nav_sat_hdr_s));
-
-    uint32_t cno_sum = 0;
-    uint8_t cno_count = 0;
-    uint8_t cno_max = 0;
-    uint8_t best_gnss = 0;
-    uint8_t best_svid = 0;
-    uint8_t used_count = 0;
-
-    /*
-     * UBX-NAV-SAT flags bit 3 (0x08) indicates svUsed in navigation solution.
-     * We use this to estimate whether receiver sees satellites but cannot use them.
-     */
-    for (uint8_t i = 0; i < hdr->numSvs; i++)
-    {
-        const ubx_nav_sat_block_s *sv = &blocks[i];
-
-        if (sv->flags & (1u << 3))
-        {
-            used_count++;
-        }
-
-        /*
-         * cno==0 means no meaningful signal lock for this SV.
-         * Skip from averaging to avoid biasing quality toward zero.
-         */
-        if (sv->cno > 0)
-        {
-            cno_sum += sv->cno;
-            cno_count++;
-
-            if (sv->cno > cno_max)
-            {
-                cno_max = sv->cno;
-                best_gnss = sv->gnssId;
-                best_svid = sv->svId;
-            }
-        }
-    }
-
-    _gps_data.nav_sat_valid = true;
-    _gps_data.nav_sat_num_svs = hdr->numSvs;
-    _gps_data.nav_sat_used_svs = used_count;
-    _gps_data.nav_sat_cno_max = cno_max;
-    _gps_data.nav_sat_cno_mean = (cno_count > 0) ?
-                                 ((float)cno_sum / (float)cno_count) : NAN;
-    _gps_data.nav_sat_best_gnss = best_gnss;
-    _gps_data.nav_sat_best_svid = best_svid;
-
-    return 0;
 }
 
 /****************************************************************************
@@ -1335,36 +1252,6 @@ int GPSUbx::waitForAck(uint8_t msg_class, uint8_t msg_id, int timeout_ms)
             return -EPROTO;
         }
     }
-}
-
-/****************************************************************************
- * requestNavSat - Poll NAV-SAT and wait for summary update
- ****************************************************************************/
-
-int GPSUbx::requestNavSat(int timeout_ms)
-{
-    _gps_data.nav_sat_valid = false;
-
-    int ret = sendMessage(UBX_CLASS_NAV, UBX_ID_NAV_SAT, nullptr, 0);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    int elapsed_ms = 0;
-    while (elapsed_ms < timeout_ms)
-    {
-        poll(50);
-
-        if (_gps_data.nav_sat_valid)
-        {
-            return 0;
-        }
-
-        elapsed_ms += 50;
-    }
-
-    return -ETIMEDOUT;
 }
 
 /****************************************************************************

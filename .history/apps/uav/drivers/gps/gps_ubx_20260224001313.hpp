@@ -123,13 +123,7 @@
 /* Buffer sizes */
 #define UBX_RX_BUFFER_SIZE          256
 #define UBX_TX_BUFFER_SIZE          128
-/*
- * NAV-SAT payload size grows with satellite count:
- *   size = 4 (header) + 12 * numSV
- * With >16 SV, payload already exceeds 196 bytes.
- * Keep margin so parser can handle dense multi-GNSS constellations.
- */
-#define UBX_PAYLOAD_MAX_SIZE        512
+#define UBX_PAYLOAD_MAX_SIZE        200
 
 /* Timeouts */
 #define UBX_ACK_TIMEOUT_MS          500
@@ -270,27 +264,6 @@ struct ubx_mon_rf_block_s
     uint8_t  reserved3[3];
 };
 
-/* NAV-SAT message header */
-struct ubx_nav_sat_hdr_s
-{
-    uint32_t iTOW;
-    uint8_t  version;
-    uint8_t  numSvs;
-    uint8_t  reserved1[2];
-};
-
-/* NAV-SAT repeated block (12 bytes each SV) */
-struct ubx_nav_sat_block_s
-{
-    uint8_t  gnssId;
-    uint8_t  svId;
-    uint8_t  cno;
-    int8_t   elev;
-    int16_t  azim;
-    int16_t  prRes;
-    uint32_t flags;
-};
-
 #pragma pack(pop)
 
 /****************************************************************************
@@ -351,15 +324,6 @@ struct gps_data_s
     uint8_t  rf_jam_ind;
     uint16_t rf_noise_per_ms;
     uint16_t rf_agc_cnt;
-
-    /* NAV-SAT summary diagnostics */
-    bool     nav_sat_valid;
-    uint8_t  nav_sat_num_svs;
-    uint8_t  nav_sat_used_svs;
-    uint8_t  nav_sat_cno_max;
-    float    nav_sat_cno_mean;
-    uint8_t  nav_sat_best_gnss;
-    uint8_t  nav_sat_best_svid;
 };
 
 /****************************************************************************
@@ -439,8 +403,6 @@ public:
      */
     uint32_t getErrorCount() const { return _error_count; }
 
-    int refreshDiagnostics(int timeout_ms);
-
     /**
      * @brief Hardware reset GPS module via RESET_N pin
      * @return 0 on success, negative on error
@@ -497,7 +459,6 @@ private:
     void addChecksum(uint8_t c);
     int  processMessage();
     int  parseNavPvt(const uint8_t *payload, uint16_t len);
-    int  parseNavSat(const uint8_t *payload, uint16_t len);
     int  parseAck(const uint8_t *payload, uint16_t len);
     int  parseMonVer(const uint8_t *payload, uint16_t len);
     int  parseMonRf(const uint8_t *payload, uint16_t len);
@@ -516,8 +477,6 @@ private:
     int  setDynamicModel(uint8_t model);
     int  sendCfgValset(uint32_t key, const void *value, uint8_t size);
     int  requestMonVer(int timeout_ms);
-    int  requestMonRf(int timeout_ms);
-    int  requestNavSat(int timeout_ms);
 
     bool _proto_ver_27_or_higher;
     uint8_t _board_generation;

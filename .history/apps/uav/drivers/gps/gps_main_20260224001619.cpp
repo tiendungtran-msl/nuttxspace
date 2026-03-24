@@ -646,27 +646,6 @@ static void gps_diag(void)
             printf("  unavailable\n");
         }
 
-        printf("\nNAV-SAT:\n");
-        if (d->nav_sat_valid)
-        {
-            printf("  total_sv: %u  used_sv: %u\n",
-                   d->nav_sat_num_svs,
-                   d->nav_sat_used_svs);
-
-            printf("  cno_mean: ");
-            if (isfinite(d->nav_sat_cno_mean)) printf("%.1f dBHz\n", d->nav_sat_cno_mean);
-            else printf("N/A\n");
-
-            printf("  cno_max: %u dBHz  best: gnss=%u svid=%u\n",
-                   d->nav_sat_cno_max,
-                   d->nav_sat_best_gnss,
-                   d->nav_sat_best_svid);
-        }
-        else
-        {
-            printf("  unavailable\n");
-        }
-
         printf("\nDiagnosis:\n");
 
         if (msgs == 0)
@@ -695,12 +674,6 @@ static void gps_diag(void)
                 {
                     printf("  [!] MON-RF high jamming indicator (%u)\n", d->rf_jam_ind);
                 }
-            }
-
-            if (d->nav_sat_valid && d->nav_sat_num_svs > 0 && d->nav_sat_used_svs == 0)
-            {
-                printf("  [!] Receiver sees satellites but cannot use any (used_sv=0)\n");
-                printf("      Check antenna quality, sky visibility, and wait for ephemeris download.\n");
             }
         }
         else if (d->fix_type == 0 && d->num_sats > 0)

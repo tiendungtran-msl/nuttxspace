@@ -500,234 +500,6 @@ static int gps_selftest(int wait_seconds)
     return 0;
 }
 
-/**
- * @brief LED sub-command handler
- */
-static int gps_led_command(int argc, char *argv[])
-{
-    if (argc < 3)
-    {
-        printf("Usage: gps_app led <init|on|off|blink [N]>\n");
-        printf("  init     - Configure PA14 as output (disables SWD!)\n");
-        printf("  on       - Turn LED on\n");
-        printf("  off      - Turn LED off\n");
-        printf("  blink [N]- Blink N times (default 3)\n");
-        return 0;
-    }
-
-    const char *sub = argv[2];
-
-    if (strcmp(sub, "init") == 0)
-    {
-        printf("[GPS] WARNING: PA14 is SWCLK – SWD debugging will be "
-               "disabled until next reset!\n");
-        gps_led_init();
-        /* Confirm init with 2 quick blinks */
-        gps_led_blink(2);
-        return 0;
-    }
-
-    if (!g_gps_led_active)
-    {
-        printf("[GPS] LED not initialised. Run 'gps_app led init' first.\n");
-        return -EINVAL;
-    }
-
-    if (strcmp(sub, "on") == 0)
-    {
-        gps_led_set(true);
-        printf("[GPS] LED ON\n");
-    }
-    else if (strcmp(sub, "off") == 0)
-    {
-        gps_led_set(false);
-        printf("[GPS] LED OFF\n");
-    }
-    else if (strcmp(sub, "blink") == 0)
-    {
-        int count = 3;
-        if (argc >= 4)
-        {
-            count = atoi(argv[3]);
-        }
-
-        if (count < 1) count = 1;
-        if (count > 100) count = 100;
-        printf("[GPS] Blinking %d times...\n", count);
-        gps_led_blink(count);
-        printf("[GPS] Done\n");
-    }
-    else
-    {
-        printf("Unknown LED sub-command: %s\n", sub);
-    }
-
-    return 0;
-}
-
-/**
- * @brief Detailed GPS diagnostics
- */
-static void gps_diag(void)
-{
-    printf("\n=== GPS Diagnostics ===\n");
-    printf("Running:    %s\n", g_gps_running ? "YES" : "NO");
-    printf("Init state: %s\n", gps_init_state_str(g_gps_init_state));
-    printf("UART:       %s\n", g_gps_active_uart ? g_gps_active_uart : "none");
-    printf("LED PA14:   %s\n", g_gps_led_active ? "active" : "off");
-    printf("Last error: %d\n", g_gps_last_error);
-
-    if (g_gps_driver)
-    {
-        (void)g_gps_driver->refreshDiagnostics(300);
-
-        uint32_t msgs = g_gps_driver->getMessageCount();
-        uint32_t errs = g_gps_driver->getErrorCount();
-        printf("Configured: %s\n", g_gps_driver->isConfigured() ? "YES" : "NO");
-        printf("Proto>=27:  %s\n", g_gps_driver->isProtoVer27OrHigher() ? "YES" : "NO");
-        printf("HW gen:     %u\n", g_gps_driver->getBoardGeneration());
-        printf("UBX msgs:   %lu\n", (unsigned long)msgs);
-        printf("Parse errs: %lu\n", (unsigned long)errs);
-
-        const gps_data_s *d = g_gps_driver->getData();
-        printf("\nNAV-PVT fields:\n");
-        printf("  fix_type:       %u\n", d->fix_type);
-        printf("  num_sats:       %u\n", d->num_sats);
-        printf("  position_valid: %s\n", d->position_valid ? "YES" : "NO");
-        printf("  velocity_valid: %s\n", d->velocity_valid ? "YES" : "NO");
-        printf("  time_valid:     %s\n", d->time_valid ? "YES" : "NO");
-        printf("  lat: %.7f  lon: %.7f\n", d->lat, d->lon);
-        printf("  alt_msl: %.2f m\n", d->alt_msl);
-
-        if (d->time_valid)
-        {
-            printf("  UTC: %04u-%02u-%02u %02u:%02u:%02u\n",
-                   d->year, d->month, d->day,
-                   d->hour, d->minute, d->second);
-        }
-        else
-        {
-            printf("  UTC: invalid\n");
-        }
-
-        printf("  hacc: ");
-        if (isfinite(d->hacc)) printf("%.2f m\n", d->hacc);
-        else printf("N/A\n");
-
-        printf("  vacc: ");
-        if (isfinite(d->vacc)) printf("%.2f m\n", d->vacc);
-        else printf("N/A\n");
-
-        printf("  pdop: ");
-        if (isfinite(d->pdop)) printf("%.2f\n", d->pdop);
-        else printf("N/A\n");
-
-        printf("\nMON-VER:\n");
-        if (d->mon_ver_valid)
-        {
-            printf("  module: %s\n", d->module_name[0] ? d->module_name : "unknown");
-            printf("  protocol: %u.%u\n", d->proto_major, d->proto_minor);
-        }
-        else
-        {
-            printf("  unavailable\n");
-        }
-
-        printf("\nMON-RF:\n");
-        if (d->mon_rf_valid)
-        {
-            printf("  blocks: %u\n", d->rf_blocks);
-            printf("  ant_status: %u  ant_power: %u\n", d->rf_ant_status, d->rf_ant_power);
-            printf("  jam_ind: %u  noisePerMS: %u  agcCnt: %u\n",
-                   d->rf_jam_ind, d->rf_noise_per_ms, d->rf_agc_cnt);
-        }
-        else
-        {
-            printf("  unavailable\n");
-        }
-
-        printf("\nNAV-SAT:\n");
-        if (d->nav_sat_valid)
-        {
-            printf("  total_sv: %u  used_sv: %u\n",
-                   d->nav_sat_num_svs,
-                   d->nav_sat_used_svs);
-
-            printf("  cno_mean: ");
-            if (isfinite(d->nav_sat_cno_mean)) printf("%.1f dBHz\n", d->nav_sat_cno_mean);
-            else printf("N/A\n");
-
-            printf("  cno_max: %u dBHz  best: gnss=%u svid=%u\n",
-                   d->nav_sat_cno_max,
-                   d->nav_sat_best_gnss,
-                   d->nav_sat_best_svid);
-        }
-        else
-        {
-            printf("  unavailable\n");
-        }
-
-        printf("\nDiagnosis:\n");
-
-        if (msgs == 0)
-        {
-            printf("  [!] No UBX messages – UART/wiring/power problem\n");
-            printf("      Check: GPS VCC, TX→MCU_RX, correct /dev/ttySx\n");
-        }
-        else if (d->fix_type == 0 && d->num_sats == 0)
-        {
-            printf("  [!] UBX link OK but ZERO satellites seen\n");
-            printf("      Likely causes:\n");
-            printf("        - Antenna not connected / broken\n");
-            printf("        - Active antenna needs V_ANT power\n");
-            printf("        - Indoor / obstructed sky view\n");
-            printf("        - GPS module RF front-end issue\n");
-            printf("        - Cold start can take 2-12 minutes\n");
-
-            if (d->mon_rf_valid)
-            {
-                if (d->rf_ant_status >= 2)
-                {
-                    printf("  [!] MON-RF antenna status abnormal (%u)\n", d->rf_ant_status);
-                }
-
-                if (d->rf_jam_ind > 80)
-                {
-                    printf("  [!] MON-RF high jamming indicator (%u)\n", d->rf_jam_ind);
-                }
-            }
-
-            if (d->nav_sat_valid && d->nav_sat_num_svs > 0 && d->nav_sat_used_svs == 0)
-            {
-                printf("  [!] Receiver sees satellites but cannot use any (used_sv=0)\n");
-                printf("      Check antenna quality, sky visibility, and wait for ephemeris download.\n");
-            }
-        }
-        else if (d->fix_type == 0 && d->num_sats > 0)
-        {
-            printf("  [~] Tracking %u sats but no fix yet\n", d->num_sats);
-            printf("      Need >=4 sats for 3D fix. Wait longer.\n");
-        }
-        else
-        {
-            printf("  [OK] Fix=%u, Sats=%u\n", d->fix_type, d->num_sats);
-        }
-
-        if (errs > 0 && errs > msgs / 2)
-        {
-            printf("  [!] High parse error ratio (%lu/%lu) – "
-                   "baudrate mismatch or noise\n",
-                   (unsigned long)errs, (unsigned long)msgs);
-        }
-    }
-    else
-    {
-        printf("Driver instance: NULL\n");
-    }
-
-    printf("========================\n\n");
-}
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -839,12 +611,6 @@ static void *gps_thread_main(void *arg)
             /* New data available */
             const gps_data_s *data = g_gps_driver->getData();
 
-            /* Brief LED pulse on each UBX message (if LED initialised) */
-            if (g_gps_led_active)
-            {
-                gps_led_set(true);
-            }
-
             if (data->position_valid)
             {
                 /* Fill uORB message */
@@ -870,14 +636,6 @@ static void *gps_thread_main(void *arg)
                 msg_count++;
             }
         }
-        else
-        {
-            /* No new data – LED off */
-            if (g_gps_led_active)
-            {
-                gps_led_set(false);
-            }
-        }
 
         loop_count++;
 
@@ -889,19 +647,19 @@ static void *gps_thread_main(void *arg)
         if (now - last_print_time > 5000000ULL)  /* 5 seconds */
         {
             const gps_data_s *data = g_gps_driver->getData();
-            printf("[GPS] fix=%u sats=%u lat=%.6f lon=%.6f alt=%.1f msgs=%lu errs=%lu\n",
+            printf("[GPS] fix=%u sats=%u lat=%.6f lon=%.6f alt=%.1f msgs=%u errs=%u\n",
                    data->fix_type,
                    data->num_sats,
                    data->lat,
                    data->lon,
                    data->alt_msl,
-                   (unsigned long)g_gps_driver->getMessageCount(),
-                   (unsigned long)g_gps_driver->getErrorCount());
+                   g_gps_driver->getMessageCount(),
+                   g_gps_driver->getErrorCount());
             last_print_time = now;
         }
     }
 
-    printf("[GPS] Thread stopping (loops=%lu, msgs=%lu)\n", (unsigned long)loop_count, (unsigned long)msg_count);
+    printf("[GPS] Thread stopping (loops=%u, msgs=%u)\n", loop_count, msg_count);
 
     /* Cleanup */
     if (g_gps_pub)
@@ -1014,8 +772,8 @@ static void gps_status(void)
     if (g_gps_driver)
     {
         printf("Configured: %s\n", g_gps_driver->isConfigured() ? "YES" : "NO");
-        printf("Messages:   %lu\n", (unsigned long)g_gps_driver->getMessageCount());
-        printf("Errors:     %lu\n", (unsigned long)g_gps_driver->getErrorCount());
+        printf("Messages:   %u\n", g_gps_driver->getMessageCount());
+        printf("Errors:     %u\n", g_gps_driver->getErrorCount());
 
         const gps_data_s *data = g_gps_driver->getData();
         printf("Position valid: %s\n", data->position_valid ? "YES" : "NO");
@@ -1122,16 +880,14 @@ static void gps_info(void)
 static void print_usage(void)
 {
     printf("\nGPS Driver for u-blox M10N\n");
-    printf("Usage: gps_app <command> [args]\n\n");
+    printf("Usage: gps_app <command> [uart_dev]\n\n");
     printf("Commands:\n");
-    printf("  start [dev]    - Start GPS driver (optional /dev/ttySx)\n");
-    printf("  stop           - Stop GPS driver\n");
-    printf("  status         - Show GPS status\n");
-    printf("  info           - Current GPS info (compact)\n");
-    printf("  diag           - Detailed diagnostics\n");
-    printf("  selftest [sec] - UART/GNSS probe (default 30 s)\n");
-    printf("  led <sub>      - LED PA14 control (init/on/off/blink)\n");
-    printf("  help           - This help\n\n");
+    printf("  start [dev] - Start GPS driver (optional dev: /dev/ttyS1, /dev/ttyS2, ...)\n");
+    printf("  stop    - Stop GPS driver\n");
+    printf("  status  - Show GPS status\n");
+    printf("  info    - Show current GPS information\n");
+    printf("  selftest [sec] - Probe UART/GNSS (live wait timeout, default 30s)\n");
+    printf("  help    - Show this help\n\n");
     printf("UART: %s\n\n", GPS_UART_PATH);
 }
 
@@ -1188,15 +944,6 @@ int gps_app_main(int argc, char *argv[])
         }
 
         return gps_selftest(wait_seconds);
-    }
-    else if (strcmp(cmd, "led") == 0)
-    {
-        return gps_led_command(argc, argv);
-    }
-    else if (strcmp(cmd, "diag") == 0)
-    {
-        gps_diag();
-        return 0;
     }
     else if (strcmp(cmd, "help") == 0)
     {

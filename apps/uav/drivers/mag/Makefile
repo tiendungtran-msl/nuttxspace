@@ -1,22 +1,16 @@
 ############################################################################
-# apps/uav/drivers/Makefile
+# apps/uav/drivers/mag/Makefile
 #
-# Drivers Build
-#
-# MỤC ĐÍCH:
-# - Build tất cả hardware drivers
-#
+# Magnetometer Drivers
 ############################################################################
 
 include $(APPDIR)/Make.defs
 
-# Subdirectories for library-style drivers (not standalone apps)
-# GPS is a standalone app handled by its own Make.defs
-SUBDIRS = spi imu mag
+# Subdirectories
+SUBDIRS = bmm150
 
 ifeq ($(CONFIG_UAV),y)
 CONFIGURED_APPS += $(SUBDIRS)
 endif
 
 include $(APPDIR)/Directory.mk
-

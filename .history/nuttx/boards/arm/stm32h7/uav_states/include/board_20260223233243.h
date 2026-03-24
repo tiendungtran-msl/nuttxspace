@@ -293,9 +293,9 @@
 
 /* GPS u-blox M10N additional pins
 /* Buzzer, Switch, LED */
-#define GPIO_BUZZER       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN12)  /* PA12 */
-#define GPIO_USER_SWITCH  (GPIO_INPUT | GPIO_PULLUP | GPIO_EXTI | GPIO_PORTA | GPIO_PIN13)  /* PA13 */
-#define GPIO_USER_LED     (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN14)  /* PA14 */
+#define GPIO_BUZZER       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN12)  /* PA11 */
+#define GPIO_USER_SWITCH  (GPIO_INPUT | GPIO_PULLUP | GPIO_EXTI | GPIO_PORTA | GPIO_PIN12)  /* PA12 */
+#define GPIO_USER_LED     (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN13)  /* PA13 */
 
 
 // /* CAN
@@ -325,20 +325,13 @@
  *   reset the bus to clear stuck slaves.  They match the pin configuration,
  *   but are normally-high GPIOs.
  *
- *   I2C1 is used for BMM150 magnetometer:
- *     SCL: PB6
- *     SDA: PB7
  */
 
-#define GPIO_I2C1_SCL GPIO_I2C1_SCL_1       /* PB6  */
-#define GPIO_I2C1_SDA GPIO_I2C1_SDA_1       /* PB7  */
+// #define GPIO_I2C1_SCL GPIO_I2C1_SCL_2       /* PB8  */
+// #define GPIO_I2C1_SDA GPIO_I2C1_SDA_1       /* PB7  */
 
-#define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN6)
-#define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN7)
-
-/* BMM150 Magnetometer I2C Configuration */
-#define BOARD_BMM150_I2C_BUS        1              /* I2C1 */
-#define BOARD_BMM150_I2C_ADDRESS    0x13           /* Địa chỉ mặc định */
+// #define GPIO_I2C1_SCL_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN8)
+// #define GPIO_I2C1_SDA_GPIO                  (GPIO_OUTPUT | GPIO_OPENDRAIN |GPIO_SPEED_50MHz | GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN7)
 
 // #define GPIO_I2C2_SCL GPIO_I2C2_SCL_1       /* PB10 */
 // #define GPIO_I2C2_SDA GPIO_I2C2_SDA_1       /* PB11*/

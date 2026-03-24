@@ -27,5 +27,6 @@ source "/home/msi-leibniz/nuttxspace/apps/uav/sensors_app/Kconfig"
 source "/home/msi-leibniz/nuttxspace/apps/uav/estimator_app/Kconfig"
 source "/home/msi-leibniz/nuttxspace/apps/uav/state_app/Kconfig"
 source "/home/msi-leibniz/nuttxspace/apps/uav/telemetry_app/Kconfig"
+source "/home/msi-leibniz/nuttxspace/apps/uav/calib_app/Kconfig"
 
 endif # UAV

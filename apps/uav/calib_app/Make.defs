@@ -1,0 +1,10 @@
+############################################################################
+# apps/uav/calib_app/Make.defs
+#
+# Calibration App Make Definitions
+#
+############################################################################
+
+ifneq ($(CONFIG_UAV_CALIB),)
+CONFIGURED_APPS += $(APPDIR)/uav/calib_app
+endif

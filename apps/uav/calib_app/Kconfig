@@ -1,0 +1,54 @@
+#
+# apps/uav/calib_app/Kconfig
+#
+# Sensor Calibration Application Configuration
+#
+
+config UAV_CALIB
+	tristate "UAV Sensor Calibration"
+	default n
+	depends on UAV
+	---help---
+		Interactive sensor calibration application.
+		Cung cấp các lệnh calibration cho:
+		- Gyroscope bias (giữ yên, tính trung bình)
+		- Accelerometer bias + scale (6-position)
+		- Magnetometer hard-iron offset (sphere-fit)
+
+		Sử dụng: calib <gyro|accel|mag|status|reset>
+
+if UAV_CALIB
+
+config UAV_CALIB_PRIORITY
+	int "Calibration task priority"
+	default 100
+	---help---
+		Priority cho calibration task.
+		Thấp hơn sensor tasks vì chỉ chạy khi cần.
+
+config UAV_CALIB_STACKSIZE
+	int "Calibration task stack size"
+	default 4096
+	---help---
+		Stack size cho calibration task.
+
+config UAV_CALIB_GYRO_SAMPLES
+	int "Number of gyro calibration samples"
+	default 5000
+	---help---
+		Số mẫu thu thập khi calibrate gyro.
+		Mặc định 5000 mẫu (~5 giây ở 1kHz).
+
+config UAV_CALIB_ACCEL_SAMPLES
+	int "Number of accel samples per position"
+	default 1000
+	---help---
+		Số mẫu thu thập cho mỗi vị trí khi calibrate accel.
+
+config UAV_CALIB_MAG_SAMPLES
+	int "Number of mag calibration samples"
+	default 2000
+	---help---
+		Số mẫu thu thập khi calibrate magnetometer.
+
+endif # UAV_CALIB

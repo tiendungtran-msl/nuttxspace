@@ -863,11 +863,10 @@ int GPSUbx::processMessage()
         case UBX_ID_NAV_PVT:
             return parseNavPvt(_payload, _payload_len);
 
-        case UBX_ID_NAV_SAT:
-            return parseNavSat(_payload, _payload_len);
-
         default:
             break;
+        case UBX_ID_NAV_SAT:
+            return parseNavSat(_payload, _payload_len);
         }
         break;
 
@@ -1319,6 +1318,36 @@ int GPSUbx::waitForAck(uint8_t msg_class, uint8_t msg_id, int timeout_ms)
             return -ETIMEDOUT;
         }
 
+        /****************************************************************************
+         * requestNavSat - Poll NAV-SAT and wait for summary update
+         ****************************************************************************/
+
+        int GPSUbx::requestNavSat(int timeout_ms)
+        {
+            _gps_data.nav_sat_valid = false;
+
+            int ret = sendMessage(UBX_CLASS_NAV, UBX_ID_NAV_SAT, nullptr, 0);
+            if (ret < 0)
+            {
+                return ret;
+            }
+
+            int elapsed_ms = 0;
+            while (elapsed_ms < timeout_ms)
+            {
+                poll(50);
+
+                if (_gps_data.nav_sat_valid)
+                {
+                    return 0;
+                }
+
+                elapsed_ms += 50;
+            }
+
+            return -ETIMEDOUT;
+        }
+
         /* Poll for data */
         poll(10);
 
@@ -1335,36 +1364,6 @@ int GPSUbx::waitForAck(uint8_t msg_class, uint8_t msg_id, int timeout_ms)
             return -EPROTO;
         }
     }
-}
-
-/****************************************************************************
- * requestNavSat - Poll NAV-SAT and wait for summary update
- ****************************************************************************/
-
-int GPSUbx::requestNavSat(int timeout_ms)
-{
-    _gps_data.nav_sat_valid = false;
-
-    int ret = sendMessage(UBX_CLASS_NAV, UBX_ID_NAV_SAT, nullptr, 0);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    int elapsed_ms = 0;
-    while (elapsed_ms < timeout_ms)
-    {
-        poll(50);
-
-        if (_gps_data.nav_sat_valid)
-        {
-            return 0;
-        }
-
-        elapsed_ms += 50;
-    }
-
-    return -ETIMEDOUT;
 }
 
 /****************************************************************************

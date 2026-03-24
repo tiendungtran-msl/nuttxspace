@@ -575,89 +575,6 @@ int GPSUbx::configure()
 }
 
 /****************************************************************************
- * requestMonVer - Poll MON-VER and wait until parser updates diagnostics
- ****************************************************************************/
-
-int GPSUbx::requestMonVer(int timeout_ms)
-{
-    _gps_data.mon_ver_valid = false;
-
-    int ret = sendMessage(UBX_CLASS_MON, UBX_ID_MON_VER, nullptr, 0);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    int elapsed_ms = 0;
-    while (elapsed_ms < timeout_ms)
-    {
-        poll(50);
-
-        if (_gps_data.mon_ver_valid)
-        {
-            return 0;
-        }
-
-        elapsed_ms += 50;
-    }
-
-    return -ETIMEDOUT;
-}
-
-/****************************************************************************
- * requestMonRf - Poll MON-RF and wait until parser updates RF diagnostics
- ****************************************************************************/
-
-int GPSUbx::requestMonRf(int timeout_ms)
-{
-    _gps_data.mon_rf_valid = false;
-
-    int ret = sendMessage(UBX_CLASS_MON, UBX_ID_MON_RF, nullptr, 0);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    int elapsed_ms = 0;
-    while (elapsed_ms < timeout_ms)
-    {
-        poll(50);
-
-        if (_gps_data.mon_rf_valid)
-        {
-            return 0;
-        }
-
-        elapsed_ms += 50;
-    }
-
-    return -ETIMEDOUT;
-}
-
-/****************************************************************************
- * refreshDiagnostics - update MON-VER and MON-RF snapshot
- ****************************************************************************/
-
-int GPSUbx::refreshDiagnostics(int timeout_ms)
-{
-    if (_uart_fd < 0)
-    {
-        return -ENODEV;
-    }
-
-    int ret1 = requestMonVer(timeout_ms);
-    int ret2 = requestMonRf(timeout_ms);
-    int ret3 = requestNavSat(timeout_ms);
-
-    if (ret1 < 0 && ret2 < 0 && ret3 < 0)
-    {
-        return ret1;
-    }
-
-    return 0;
-}
-
-/****************************************************************************
  * poll - Read and parse GPS data
  ****************************************************************************/
 
@@ -863,9 +780,6 @@ int GPSUbx::processMessage()
         case UBX_ID_NAV_PVT:
             return parseNavPvt(_payload, _payload_len);
 
-        case UBX_ID_NAV_SAT:
-            return parseNavSat(_payload, _payload_len);
-
         default:
             break;
         }
@@ -972,85 +886,6 @@ int GPSUbx::parseNavPvt(const uint8_t *payload, uint16_t len)
 }
 
 /****************************************************************************
- * parseNavSat - Parse NAV-SAT message and compute robust summary metrics
- *
- * Why summary metrics instead of storing all satellites?
- * - Keep memory footprint low for embedded target.
- * - Still expose the most useful health indicators for diagnosis:
- *   total SV, used SV, mean/max C/N0, strongest satellite identity.
- ****************************************************************************/
-
-int GPSUbx::parseNavSat(const uint8_t *payload, uint16_t len)
-{
-    if (len < sizeof(ubx_nav_sat_hdr_s))
-    {
-        return 0;
-    }
-
-    const ubx_nav_sat_hdr_s *hdr = reinterpret_cast<const ubx_nav_sat_hdr_s *>(payload);
-    const uint16_t expect_len = (uint16_t)(sizeof(ubx_nav_sat_hdr_s) +
-                                           hdr->numSvs * sizeof(ubx_nav_sat_block_s));
-
-    if (len < expect_len)
-    {
-        GPS_LOG("NAV-SAT truncated: got %u expected %u", len, expect_len);
-        return 0;
-    }
-
-    const ubx_nav_sat_block_s *blocks =
-        reinterpret_cast<const ubx_nav_sat_block_s *>(payload + sizeof(ubx_nav_sat_hdr_s));
-
-    uint32_t cno_sum = 0;
-    uint8_t cno_count = 0;
-    uint8_t cno_max = 0;
-    uint8_t best_gnss = 0;
-    uint8_t best_svid = 0;
-    uint8_t used_count = 0;
-
-    /*
-     * UBX-NAV-SAT flags bit 3 (0x08) indicates svUsed in navigation solution.
-     * We use this to estimate whether receiver sees satellites but cannot use them.
-     */
-    for (uint8_t i = 0; i < hdr->numSvs; i++)
-    {
-        const ubx_nav_sat_block_s *sv = &blocks[i];
-
-        if (sv->flags & (1u << 3))
-        {
-            used_count++;
-        }
-
-        /*
-         * cno==0 means no meaningful signal lock for this SV.
-         * Skip from averaging to avoid biasing quality toward zero.
-         */
-        if (sv->cno > 0)
-        {
-            cno_sum += sv->cno;
-            cno_count++;
-
-            if (sv->cno > cno_max)
-            {
-                cno_max = sv->cno;
-                best_gnss = sv->gnssId;
-                best_svid = sv->svId;
-            }
-        }
-    }
-
-    _gps_data.nav_sat_valid = true;
-    _gps_data.nav_sat_num_svs = hdr->numSvs;
-    _gps_data.nav_sat_used_svs = used_count;
-    _gps_data.nav_sat_cno_max = cno_max;
-    _gps_data.nav_sat_cno_mean = (cno_count > 0) ?
-                                 ((float)cno_sum / (float)cno_count) : NAN;
-    _gps_data.nav_sat_best_gnss = best_gnss;
-    _gps_data.nav_sat_best_svid = best_svid;
-
-    return 0;
-}
-
-/****************************************************************************
  * parseAck - Parse ACK-ACK or ACK-NAK message
  ****************************************************************************/
 
@@ -1103,10 +938,7 @@ int GPSUbx::parseMonVer(const uint8_t *payload, uint16_t len)
 
     for (uint16_t i = 0; i + 8 < ext_len; i += 30)
     {
-        char linebuf[31];
-        memset(linebuf, 0, sizeof(linebuf));
-        memcpy(linebuf, &ext[i], (ext_len - i >= 30) ? 30 : (ext_len - i));
-        const char *line = linebuf;
+        const char *line = &ext[i];
 
         if (strncmp(line, "PROTVER=", 8) == 0)
         {
@@ -1129,10 +961,7 @@ int GPSUbx::parseMonVer(const uint8_t *payload, uint16_t len)
 
     for (uint16_t i = 0; i + 4 < ext_len; i += 30)
     {
-        char linebuf[31];
-        memset(linebuf, 0, sizeof(linebuf));
-        memcpy(linebuf, &ext[i], (ext_len - i >= 30) ? 30 : (ext_len - i));
-        const char *line = linebuf;
+        const char *line = &ext[i];
         if (strncmp(line, "MOD=", 4) == 0)
         {
             size_t out = 0;
@@ -1335,36 +1164,6 @@ int GPSUbx::waitForAck(uint8_t msg_class, uint8_t msg_id, int timeout_ms)
             return -EPROTO;
         }
     }
-}
-
-/****************************************************************************
- * requestNavSat - Poll NAV-SAT and wait for summary update
- ****************************************************************************/
-
-int GPSUbx::requestNavSat(int timeout_ms)
-{
-    _gps_data.nav_sat_valid = false;
-
-    int ret = sendMessage(UBX_CLASS_NAV, UBX_ID_NAV_SAT, nullptr, 0);
-    if (ret < 0)
-    {
-        return ret;
-    }
-
-    int elapsed_ms = 0;
-    while (elapsed_ms < timeout_ms)
-    {
-        poll(50);
-
-        if (_gps_data.nav_sat_valid)
-        {
-            return 0;
-        }
-
-        elapsed_ms += 50;
-    }
-
-    return -ETIMEDOUT;
 }
 
 /****************************************************************************

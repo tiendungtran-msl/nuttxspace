@@ -25,5 +25,6 @@ SUBDIRS += sensors_app
 SUBDIRS += estimator_app
 SUBDIRS += state_app
 SUBDIRS += telemetry_app
+SUBDIRS += calib_app
 
 include $(APPDIR)/Directory.mk

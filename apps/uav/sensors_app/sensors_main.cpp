@@ -71,15 +71,24 @@
 #include <uav/uorb/topics/system_status.hpp>
 
 /* IMU Driver - ICM42688P */
-#include <uav/drivers/imu/icm42688p.hpp>
+#include <uav/drivers/imu/icm42688p/icm42688p.hpp>
 
-/* Board-specific SPI for ICM42688P */
+/* MAG Driver - BMM150 */
+#include <uav/drivers/mag/bmm150/bmm150.hpp>
+#include <nuttx/i2c/i2c_master.h>
+
+/* Board-specific SPI/I2C */
 extern "C" {
 #include "stm32_spi_icm.h"
+struct i2c_master_s *stm32_i2cbus_initialize(int port);
 }
 
 /* Global ICM42688P driver instances */
-static ICM42688P *g_imu_drivers[CONFIG_UAV_NUM_IMUS];
+static drivers::imu::ICM42688P *g_imu_drivers[CONFIG_UAV_NUM_IMUS];
+
+/* Exported instances for calibration application */
+drivers::imu::ICM42688P *g_imu_instance = nullptr;
+drivers::mag::BMM150    *g_mag_instance = nullptr;
 
 /****************************************************************************
  * Configuration - Có thể override qua Kconfig
@@ -310,7 +319,7 @@ static int init_imu_drivers(SensorsContext* ctx)
         }
 
         /* Create ICM42688P instance */
-        g_imu_drivers[i] = new ICM42688P(spi, i);
+        g_imu_drivers[i] = new drivers::imu::ICM42688P(1, i);
         if (g_imu_drivers[i] == NULL) {
             syslog(LOG_ERR, "[sensors] Failed to allocate ICM42688P %d\n", i);
             continue;
@@ -343,7 +352,40 @@ static int init_imu_drivers(SensorsContext* ctx)
         return -ENODEV;
     }
 
+    g_imu_instance = g_imu_drivers[0];
+
     syslog(LOG_INFO, "[sensors] Initialized %d/%d IMUs\n", init_count, CONFIG_UAV_NUM_IMUS);
+    return 0;
+}
+
+/**
+ * @brief Khởi tạo MAG driver (BMM150)
+ */
+static int init_mag_driver(SensorsContext* ctx)
+{
+    syslog(LOG_INFO, "[sensors] Initializing BMM150 MAG driver on I2C1...\n");
+
+    struct i2c_master_s *i2c = stm32_i2cbus_initialize(1);
+    if (!i2c) {
+        syslog(LOG_ERR, "[sensors] Failed to initialize I2C1 for BMM150\n");
+        return -ENODEV;
+    }
+
+    g_mag_instance = new drivers::mag::BMM150(i2c, 0x13);
+    if (!g_mag_instance) {
+        syslog(LOG_ERR, "[sensors] Failed to allocate BMM150\n");
+        return -ENOMEM;
+    }
+
+    int ret = g_mag_instance->initialize();
+    if (ret < 0) {
+        syslog(LOG_ERR, "[sensors] Failed to init BMM150: %d\n", ret);
+        delete g_mag_instance;
+        g_mag_instance = nullptr;
+        return ret;
+    }
+
+    syslog(LOG_INFO, "[sensors] BMM150 initialized OK\n");
     return 0;
 }
 
@@ -356,8 +398,8 @@ static int read_imu_real(int imu_index, sensor_imu_s* msg, uint64_t now_us)
         return -ENODEV;
     }
 
-    struct icm42688p_data_s data;
-    int ret = g_imu_drivers[imu_index]->read(&data);
+    drivers::imu::ICM42688P::Data data;
+    int ret = g_imu_drivers[imu_index]->read(data);
     if (ret < 0) {
         return ret;
     }
@@ -365,13 +407,13 @@ static int read_imu_real(int imu_index, sensor_imu_s* msg, uint64_t now_us)
     msg->timestamp_us = now_us;
     msg->instance = imu_index;
 
-    msg->gyro[0] = data.gyro_x;
-    msg->gyro[1] = data.gyro_y;
-    msg->gyro[2] = data.gyro_z;
+    msg->gyro[0] = data.gyro[0];
+    msg->gyro[1] = data.gyro[1];
+    msg->gyro[2] = data.gyro[2];
 
-    msg->accel[0] = data.accel_x;
-    msg->accel[1] = data.accel_y;
-    msg->accel[2] = data.accel_z;
+    msg->accel[0] = data.accel[0];
+    msg->accel[1] = data.accel[1];
+    msg->accel[2] = data.accel[2];
 
     msg->temperature = data.temperature;
 
@@ -599,6 +641,7 @@ static int sensors_thread_main(int argc, char *argv[])
 
     /* Bây giờ mới init drivers - sẽ set_imu_present(i, true) */
     init_imu_drivers(ctx);
+    init_mag_driver(ctx);
 
     /*=========================================================================
      * PHASE 5: Advertise uORB topics

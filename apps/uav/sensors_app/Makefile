@@ -35,7 +35,10 @@ CSRCS += $(APPDIR)/uav/lib/platform/timebase.c
 CXXSRCS  = $(APPDIR)/uav/lib/health/health_monitor.cpp
 CXXSRCS += $(APPDIR)/uav/lib/sensor_processing/imu_fusion.cpp
 CXXSRCS += $(APPDIR)/uav/uorb/topics.cpp
-CXXSRCS += $(APPDIR)/uav/drivers/imu/icm42688p.cpp
+CXXSRCS += $(APPDIR)/uav/drivers/imu/icm42688p/icm42688p.cpp
+CXXSRCS += $(APPDIR)/uav/drivers/mag/bmm150/bmm150.cpp
+CXXSRCS += $(APPDIR)/uav/drivers/spi/spi_device.cpp
+CXXSRCS += $(APPDIR)/uav/lib/calibration/sensor_calibration.cpp
 
 # Include paths
 CFLAGS += -I$(APPDIR)
