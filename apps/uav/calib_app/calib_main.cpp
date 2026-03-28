@@ -1505,6 +1505,32 @@ static void calib_status(void)
     printf("================================\n\n");
 }
 
+static int calib_do_check(void)
+{
+    const calib_bbram_t *s = calib_bbram_ptr();
+
+    if (!calib_bbram_is_valid(s))
+    {
+        printf("[calib] check: BBRAM invalid (magic/version/checksum failed)\n");
+        return 1;
+    }
+
+    uint16_t flags = s->flags;
+    bool gyro_ok  = (flags & CALIB_FLAG_GYRO_VALID)  != 0;
+    bool accel_ok = (flags & CALIB_FLAG_ACCEL_VALID) != 0;
+
+    if (!gyro_ok || !accel_ok)
+    {
+        printf("[calib] check: INCOMPLETE - gyro:%s accel:%s\n",
+               gyro_ok  ? "OK" : "MISSING",
+               accel_ok ? "OK" : "MISSING");
+        return 1;
+    }
+
+    printf("[calib] check: OK (gyro + accel valid)\n");
+    return 0;
+}
+
 static void calib_reset(void)
 {
     printf("\n=== RESET CALIBRATION ===\n\n");
@@ -1534,6 +1560,7 @@ static void print_usage(void)
     printf("  mag      Calibrate magnetometer (LM sphere+ellipsoid fit)\n");
     printf("  load     Tai lai calibration tu Backup SRAM va ap dung\n");
     printf("  status   Hien thi calibration hien tai + Backup SRAM\n");
+    printf("  check    Kiem tra BBRAM hop le (exit 0=OK, 1=invalid) - dung trong rcS\n");
     printf("  reset    Reset calibration + xoa Backup SRAM\n\n");
 }
 
@@ -1578,6 +1605,10 @@ int main(int argc, char *argv[])
     else if (strcmp(cmd, "reset") == 0)
     {
         calib_reset();
+    }
+    else if (strcmp(cmd, "check") == 0)
+    {
+        ret = calib_do_check();
     }
     else
     {

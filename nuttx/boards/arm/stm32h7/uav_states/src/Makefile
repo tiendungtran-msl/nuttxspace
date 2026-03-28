@@ -40,4 +40,10 @@ ifeq ($(CONFIG_STM32H7_SPI1),y)
 CSRCS += stm32_spi_icm.c
 endif
 
+# ROMFS /etc - init scripts
+ifeq ($(CONFIG_ETC_ROMFS),y)
+RCRAWS += etc/init.d/rc.sysinit
+RCRAWS += etc/init.d/rcS
+endif
+
 include $(TOPDIR)/boards/Board.mk

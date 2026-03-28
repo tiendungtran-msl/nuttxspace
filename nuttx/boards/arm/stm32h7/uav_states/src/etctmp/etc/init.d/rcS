@@ -1,0 +1,23 @@
+#!/bin/sh
+
+echo ""
+echo "[rcS] boot start"
+
+sensors start
+sleep 3
+
+if calib check
+then
+  calib load
+else
+  echo "[rcS] no calib, run gyro calib"
+  calib gyro
+  echo "[rcS] run 'calib accel' manually"
+fi
+
+eskf start
+sleep 1
+state start
+
+echo "[rcS] boot done"
+echo ""

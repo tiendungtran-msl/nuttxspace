@@ -1,0 +1,10 @@
+############################################################################
+# apps/uav/eskf_app/Make.defs
+#
+# ESKF App Make Definitions
+#
+############################################################################
+
+ifneq ($(CONFIG_UAV_ESKF),)
+CONFIGURED_APPS += $(APPDIR)/uav/eskf_app
+endif

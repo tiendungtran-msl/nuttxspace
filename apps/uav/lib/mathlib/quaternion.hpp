@@ -108,7 +108,7 @@ public:
         // Pitch (y-axis rotation)
         float sinp = 2.0f * (w * y - z * x);
         if (fabsf(sinp) >= 1.0f) {
-            *pitch = copysignf(M_PI / 2.0f, sinp);  // Gimbal lock
+            *pitch = copysignf(1.5707963267948966f, sinp);  // Gimbal lock = PI/2
         } else {
             *pitch = asinf(sinp);
         }

@@ -1,0 +1,48 @@
+#
+# apps/uav/eskf_app/Kconfig
+#
+# ESKF Estimator Application Configuration
+#
+# MỤC ĐÍCH:
+# - Cấu hình ESKF estimator qua menuconfig
+# - Task priority, stack size
+#
+
+config UAV_ESKF
+	tristate "UAV ESKF Attitude Estimator"
+	default n
+	depends on UAV_UORB
+	---help---
+		Error-State Kalman Filter (ESKF) cho ước lượng tư thế.
+		Sử dụng chủ yếu dữ liệu IMU (9-state, không cần GPS).
+
+		State vector 9 chiều:
+		  - delta_theta (3): Sai số tư thế
+		  - delta_bg (3): Sai số gyro bias
+		  - delta_ba (3): Sai số accel bias
+
+		Prediction: Gyroscope propagation.
+		Update: Accelerometer gravity observation.
+
+		Dựa trên: J. Sola, "Quaternion kinematics for the
+		error-state Kalman filter"
+
+		Lệnh: eskf start | stop | status
+
+if UAV_ESKF
+
+config UAV_ESKF_PRIORITY
+	int "ESKF task priority"
+	default 240
+	---help---
+		Priority của ESKF task.
+		Nên thấp hơn sensors_app (250) nhưng cao hơn state_app.
+
+config UAV_ESKF_STACKSIZE
+	int "ESKF task stack size"
+	default 8192
+	---help---
+		Stack size cho ESKF task.
+		Cần đủ cho ma trận 9x9 covariance operations.
+
+endif # UAV_ESKF
