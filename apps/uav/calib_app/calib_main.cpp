@@ -56,6 +56,9 @@
 /* Calibration library */
 #include <uav/lib/calibration/sensor_calibration.hpp>
 
+/* Backup SRAM persistence */
+#include "calib_storage.h"
+
 /****************************************************************************
  * Configuration
  ****************************************************************************/
@@ -444,7 +447,7 @@ static void lm_sphere_fit_iteration(
         fitness = fit1;
     }
 
-    if (isfinite(fitness) && fitness <= res.cost)
+    if (std::isfinite(fitness) && fitness <= res.cost)
     {
         res.cost     = fitness;
         p.radius     = p1[0];
@@ -576,7 +579,7 @@ static void lm_ellipsoid_fit_iteration(
         fitness = fit1;
     }
 
-    if (isfinite(fitness) && fitness <= res.cost)
+    if (std::isfinite(fitness) && fitness <= res.cost)
     {
         res.cost       = fitness;
         p.offset[0]    = q1[0];
@@ -713,12 +716,16 @@ static int calib_gyro(void)
 
         double sum[3]   = {};
         int valid_count = 0;
+        int read_errors = 0;
 
         /* Median filter 9 mẫu cho mỗi trục (giống PX4 MedianFilter<float,9>) */
         float med_buf[3][9] = {};
         int   med_idx = 0;
 
         drivers::imu::ICM42688P::Data imu_data;
+
+        /* Progress: in mỗi PROGRESS_INTERVAL mẫu hợp lệ (1 lần/giây ≈ 1000 mẫu) */
+        const int PROGRESS_INTERVAL = CONFIG_UAV_CALIB_GYRO_SAMPLES / 5;
 
         for (int i = 0; i < CONFIG_UAV_CALIB_GYRO_SAMPLES; i++)
         {
@@ -736,10 +743,43 @@ static int calib_gyro(void)
                 (void)med_idx;
 
                 valid_count++;
+
+                /* In progress mỗi PROGRESS_INTERVAL mẫu hợp lệ */
+                if (valid_count % PROGRESS_INTERVAL == 0)
+                {
+                    float cur_x = (float)(sum[0] / valid_count);
+                    float cur_y = (float)(sum[1] / valid_count);
+                    float cur_z = (float)(sum[2] / valid_count);
+                    printf("[calib]   %d/%d mau | gyro=(%+.4f %+.4f %+.4f) rad/s | err=%d\n",
+                           valid_count, CONFIG_UAV_CALIB_GYRO_SAMPLES,
+                           (double)cur_x, (double)cur_y, (double)cur_z,
+                           read_errors);
+                    fflush(stdout);
+                }
+            }
+            else
+            {
+                read_errors++;
+
+                /* Cảnh báo nếu quá nhiều lỗi liên tiếp ở đầu */
+                if (read_errors == 20 && valid_count == 0)
+                {
+                    printf("[calib] WARNING: 20 lan doc loi lien tiep! "
+                           "Kiem tra 'sensors start' da chay chua.\n");
+                    fflush(stdout);
+                }
             }
 
             usleep(1000);
         }
+
+        /* Tóm tắt kết quả thu thập */
+        printf("[calib] Thu thap xong: %d mau hop le, %d loi doc (%.1f%% thanh cong)\n",
+               valid_count, read_errors,
+               (valid_count + read_errors) > 0
+               ? (100.0f * valid_count / (valid_count + read_errors))
+               : 0.0f);
+        fflush(stdout);
 
         if (valid_count < CONFIG_UAV_CALIB_GYRO_SAMPLES / 2)
         {
@@ -786,7 +826,7 @@ static int calib_gyro(void)
         float ydiff = fabsf(median[1] - mean[1]);
         float zdiff = fabsf(median[2] - mean[2]);
 
-        if (!isfinite(mean[0]) || !isfinite(mean[1]) || !isfinite(mean[2])
+        if (!std::isfinite(mean[0]) || !std::isfinite(mean[1]) || !std::isfinite(mean[2])
                 || xdiff > maxoff || ydiff > maxoff || zdiff > maxoff)
         {
             printf("[calib] Phat hien chuyen dong (dx=%.4f dy=%.4f dz=%.4f rad/s)."
@@ -795,10 +835,25 @@ static int calib_gyro(void)
             continue;
         }
 
-        /* Thành công */
-        final_offset[0] = mean[0];
-        final_offset[1] = mean[1];
-        final_offset[2] = mean[2];
+        /* Thành công.
+         * read() đã trả body-frame CORRECTED data: R*(raw - old_offset)
+         * → mean[] là residual trong body frame, không phải offset tuyệt đối.
+         * Offset tuyệt đối = old_offset_sensor + R^T * residual_body */
+        {
+            const calibration::Vector3f &old_off =
+                g_imu_instance->get_gyro_calibration().get_offset();
+            const calibration::Dcmf &R =
+                g_imu_instance->get_gyro_calibration().get_rotation();
+            calibration::Vector3f residual_body(mean[0], mean[1], mean[2]);
+            calibration::Vector3f residual_sensor = R.T() * residual_body;
+            final_offset[0] = old_off.x + residual_sensor.x;
+            final_offset[1] = old_off.y + residual_sensor.y;
+            final_offset[2] = old_off.z + residual_sensor.z;
+            printf("[calib] Old offset:    [%+.6f %+.6f %+.6f] rad/s\n",
+                   (double)old_off.x, (double)old_off.y, (double)old_off.z);
+            printf("[calib] Residual body: [%+.6f %+.6f %+.6f] rad/s\n",
+                   (double)mean[0], (double)mean[1], (double)mean[2]);
+        }
         ret = 0;
         break;
     }
@@ -821,13 +876,15 @@ static int calib_gyro(void)
     printf("[calib] Gyro offset Z: %+.6f rad/s (%+.3f deg/s)\n",
            (double)final_offset[2],
            (double)(final_offset[2] * 180.0f / 3.14159265f));
-
-    /* Áp dụng calibration qua calibration object */
     calibration::Vector3f offset_v(final_offset[0], final_offset[1], final_offset[2]);
     g_imu_instance->get_gyro_calibration().set_offset(offset_v);
 
     printf("\n[calib] Gyro calibration THANH CONG! (sau %d lan thu)\n\n",
            try_count);
+
+    /* Luu vao Backup SRAM de tu dong ap dung sau khi reset */
+    calib_save_gyro(final_offset);
+    printf("[calib] Gyro offset da duoc luu vao Backup SRAM (0x38800000).\n\n");
 
     return 0;
 }
@@ -1053,7 +1110,8 @@ static int calib_accel(void)
     float vy = accel_ref[ACCEL_ORIENT_LEVEL][1] - offset[1];
     float vz = accel_ref[ACCEL_ORIENT_LEVEL][2] - offset[2];
     float corrected[3];
-    mat3_mul_vec(accel_T, (float[]){vx, vy, vz}, corrected);
+    float xyz_level[3] = { vx, vy, vz };
+    mat3_mul_vec(accel_T, xyz_level, corrected);
     float mag_corrected = sqrtf(corrected[0] * corrected[0] +
                                 corrected[1] * corrected[1] +
                                 corrected[2] * corrected[2]);
@@ -1063,6 +1121,11 @@ static int calib_accel(void)
 
     printf("\n[calib] Accel calibration THANH CONG!\n");
     printf("[calib]   Offset va scale matrix da duoc ap dung.\n\n");
+
+    /* Luu vao Backup SRAM */
+    float accel_diag[3] = { accel_T[0][0], accel_T[1][1], accel_T[2][2] };
+    calib_save_accel(offset, accel_diag);
+    printf("[calib] Accel offset/scale da duoc luu vao Backup SRAM (0x38800000).\n\n");
 
     return 0;
 }
@@ -1159,7 +1222,7 @@ static int calib_mag(void)
         }
 
         /* Kiểm tra finite */
-        if (!isfinite(mx) || !isfinite(my) || !isfinite(mz))
+        if (!std::isfinite(mx) || !std::isfinite(my) || !std::isfinite(mz))
         {
             usleep(50000);
             continue;
@@ -1268,13 +1331,13 @@ static int calib_mag(void)
     }
 
     /* Kiểm tra kết quả */
-    bool all_finite = isfinite(params.radius)
-                      && isfinite(params.offset[0])
-                      && isfinite(params.offset[1])
-                      && isfinite(params.offset[2])
-                      && isfinite(params.diag[0])
-                      && isfinite(params.diag[1])
-                      && isfinite(params.diag[2]);
+    bool all_finite = std::isfinite(params.radius)
+                      && std::isfinite(params.offset[0])
+                      && std::isfinite(params.offset[1])
+                      && std::isfinite(params.offset[2])
+                      && std::isfinite(params.diag[0])
+                      && std::isfinite(params.diag[1])
+                      && std::isfinite(params.diag[2]);
 
     if (!all_finite)
     {
@@ -1337,8 +1400,38 @@ static int calib_mag(void)
 }
 
 /****************************************************************************
- * Status / Reset Commands
+ * Status / Reset / Load Commands
  ****************************************************************************/
+
+static void calib_do_load(void)
+{
+    const calib_bbram_t *s = calib_bbram_ptr();
+    if (!calib_bbram_is_valid(s)) {
+        printf("[calib] Backup SRAM: khong co du lieu hop le (chua calib hoac mat nguon VBAT).\n");
+        return;
+    }
+    printf("[calib] Backup SRAM hop le! Dang ap dung...\n");
+    if ((s->flags & CALIB_FLAG_GYRO_VALID) && g_imu_instance != nullptr) {
+        calibration::Vector3f goff(s->gyro_offset[0], s->gyro_offset[1], s->gyro_offset[2]);
+        g_imu_instance->get_gyro_calibration().set_offset(goff);
+        printf("[calib] Gyro offset: X=%+.6f  Y=%+.6f  Z=%+.6f  rad/s\n",
+               (double)s->gyro_offset[0], (double)s->gyro_offset[1],
+               (double)s->gyro_offset[2]);
+    }
+    if ((s->flags & CALIB_FLAG_ACCEL_VALID) && g_imu_instance != nullptr) {
+        calibration::Vector3f aoff(s->accel_offset[0], s->accel_offset[1], s->accel_offset[2]);
+        calibration::Vector3f ascl(s->accel_scale[0],  s->accel_scale[1],  s->accel_scale[2]);
+        g_imu_instance->get_accel_calibration().set_offset(aoff);
+        g_imu_instance->get_accel_calibration().set_scale(ascl);
+        printf("[calib] Accel offset: X=%+.4f  Y=%+.4f  Z=%+.4f  m/s2\n",
+               (double)s->accel_offset[0], (double)s->accel_offset[1],
+               (double)s->accel_offset[2]);
+        printf("[calib] Accel scale:  X=%.6f  Y=%.6f  Z=%.6f\n",
+               (double)s->accel_scale[0], (double)s->accel_scale[1],
+               (double)s->accel_scale[2]);
+    }
+    printf("[calib] Load tu Backup SRAM HOAN THANH.\n\n");
+}
 
 static void calib_status(void)
 {
@@ -1388,7 +1481,28 @@ static void calib_status(void)
         printf("--- MAG: NOT AVAILABLE ---\n");
     }
 
-    printf("==========================\n\n");
+    /* Backup SRAM contents */
+    const calib_bbram_t *s = calib_bbram_ptr();
+    printf("--- Backup SRAM @ 0x38800000 ---\n");
+    if (calib_bbram_is_valid(s)) {
+        printf("Trang thai:  HOP LE (magic=0x%08X ver=%u flags=0x%04X)\n",
+               (unsigned)s->magic, (unsigned)s->version, (unsigned)s->flags);
+        printf("Gyro saved:  %s  [%+.6f %+.6f %+.6f] rad/s\n",
+               (s->flags & CALIB_FLAG_GYRO_VALID) ? "YES" : "NO ",
+               (double)s->gyro_offset[0], (double)s->gyro_offset[1],
+               (double)s->gyro_offset[2]);
+        printf("Accel saved: %s  [%+.4f %+.4f %+.4f] m/s2\n",
+               (s->flags & CALIB_FLAG_ACCEL_VALID) ? "YES" : "NO ",
+               (double)s->accel_offset[0], (double)s->accel_offset[1],
+               (double)s->accel_offset[2]);
+        printf("Accel scale: %s  [%.6f %.6f %.6f]\n",
+               (s->flags & CALIB_FLAG_ACCEL_VALID) ? "YES" : "NO ",
+               (double)s->accel_scale[0], (double)s->accel_scale[1],
+               (double)s->accel_scale[2]);
+    } else {
+        printf("Trang thai:  KHONG HOP LE (chua calib, da xoa, hoac mat nguon VBAT)\n");
+    }
+    printf("================================\n\n");
 }
 
 static void calib_reset(void)
@@ -1402,6 +1516,8 @@ static void calib_reset(void)
         printf("[calib] IMU calibration reset.\n");
     }
 
+    calib_clear_bbram();
+    printf("[calib] Backup SRAM da duoc xoa.\n");
     printf("[calib] Calibration da duoc reset ve mac dinh.\n\n");
 }
 
@@ -1416,8 +1532,9 @@ static void print_usage(void)
     printf("  gyro     Calibrate gyroscope (giu board yen, PX4-grade)\n");
     printf("  accel    Calibrate accelerometer (6-position, PX4-grade)\n");
     printf("  mag      Calibrate magnetometer (LM sphere+ellipsoid fit)\n");
-    printf("  status   Hien thi calibration hien tai\n");
-    printf("  reset    Reset calibration ve mac dinh\n\n");
+    printf("  load     Tai lai calibration tu Backup SRAM va ap dung\n");
+    printf("  status   Hien thi calibration hien tai + Backup SRAM\n");
+    printf("  reset    Reset calibration + xoa Backup SRAM\n\n");
 }
 
 /****************************************************************************
@@ -1453,6 +1570,10 @@ int main(int argc, char *argv[])
     else if (strcmp(cmd, "status") == 0)
     {
         calib_status();
+    }
+    else if (strcmp(cmd, "load") == 0)
+    {
+        calib_do_load();
     }
     else if (strcmp(cmd, "reset") == 0)
     {

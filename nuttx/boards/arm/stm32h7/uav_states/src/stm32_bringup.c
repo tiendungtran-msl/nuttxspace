@@ -38,6 +38,9 @@
 #include "uav_states.h"
 
 #include "stm32_gpio.h"
+#include "arm_internal.h"
+#include "hardware/stm32h7x3xx_pwr.h"
+#include "hardware/stm32h7x3xx_rcc.h"
 
 
 #ifdef CONFIG_STM32H7_SPI1
@@ -81,6 +84,11 @@ int stm32_bringup(void)
   int ret = OK;
 
   UNUSED(ret);
+
+  /* Enable Backup SRAM (D3 domain, 4KB @ 0x38800000) cho calibration persistence */
+  modifyreg32(STM32_PWR_CR1, 0, PWR_CR1_DBP);         /* Backup domain write access */
+  modifyreg32(STM32_RCC_AHB4ENR, 0, RCC_AHB4ENR_BKPSRAMEN); /* BKPSRAM clock */
+  syslog(LOG_INFO, "[board] Backup SRAM enabled @ 0x38800000\n");
 
   /* Đăng ký ngoại vi SPI cho ICM42688P */
 #ifdef CONFIG_STM32H7_SPI1

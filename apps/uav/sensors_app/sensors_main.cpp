@@ -77,6 +77,12 @@
 #include <uav/drivers/mag/bmm150/bmm150.hpp>
 #include <nuttx/i2c/i2c_master.h>
 
+/* Calibration library */
+#include <uav/lib/calibration/sensor_calibration.hpp>
+
+/* Backup SRAM persistence */
+#include "calib_storage.h"
+
 /* Board-specific SPI/I2C */
 extern "C" {
 #include "stm32_spi_icm.h"
@@ -318,15 +324,22 @@ static int init_imu_drivers(SensorsContext* ctx)
             continue;
         }
 
-        /* Create ICM42688P instance */
-        g_imu_drivers[i] = new drivers::imu::ICM42688P(1, i);
+        /* Create ICM42688P instance.
+         * devid phải là SPIDEV_IMU + i (bắt đầu từ 1, không phải 0)
+         * vì spi_device.cpp tính sensor_id = devid - 1.
+         * devid=i (bắt đầu 0) gây uint8_t underflow → -EINVAL cho IMU 0. */
+        g_imu_drivers[i] = new drivers::imu::ICM42688P(1, i + 1);
         if (g_imu_drivers[i] == NULL) {
             syslog(LOG_ERR, "[sensors] Failed to allocate ICM42688P %d\n", i);
             continue;
         }
 
-        /* Initialize sensor */
-        ret = g_imu_drivers[i]->init();
+        /* Phải gọi initialize() (không phải init()) để:
+         * 1. Gọi spi::Device::init() - SPI init + probe
+         * 2. configure() - set range, ODR, filter registers
+         * 3. Đặt _initialized = true
+         * Nếu chỉ gọi init(), _initialized vẫn = false → read() luôn return -ENODEV */
+        ret = g_imu_drivers[i]->initialize();
         if (ret < 0) {
             syslog(LOG_ERR, "[sensors] Failed to init ICM42688P %d: %d\n", i, ret);
             delete g_imu_drivers[i];
@@ -352,7 +365,15 @@ static int init_imu_drivers(SensorsContext* ctx)
         return -ENODEV;
     }
 
-    g_imu_instance = g_imu_drivers[0];
+    /* Gán g_imu_instance = IMU đầu tiên init thành công (không nhất thiết là IMU 0) */
+    g_imu_instance = nullptr;
+    for (int i = 0; i < CONFIG_UAV_NUM_IMUS; i++) {
+        if (g_imu_drivers[i] != nullptr) {
+            g_imu_instance = g_imu_drivers[i];
+            syslog(LOG_INFO, "[sensors] g_imu_instance -> ICM42688P %d\n", i);
+            break;
+        }
+    }
 
     syslog(LOG_INFO, "[sensors] Initialized %d/%d IMUs\n", init_count, CONFIG_UAV_NUM_IMUS);
     return 0;
@@ -642,6 +663,42 @@ static int sensors_thread_main(int argc, char *argv[])
     /* Bây giờ mới init drivers - sẽ set_imu_present(i, true) */
     init_imu_drivers(ctx);
     init_mag_driver(ctx);
+
+    /*=========================================================================
+     * PHASE 4b: Tu dong ap dung calibration da luu tu Backup SRAM
+     *=========================================================================*/
+
+    {
+        const calib_bbram_t *saved = calib_bbram_ptr();
+        if (calib_bbram_is_valid(saved) && g_imu_instance != nullptr) {
+            syslog(LOG_INFO, "[sensors] Backup SRAM hop le - ap dung calibration...\n");
+            if (saved->flags & CALIB_FLAG_GYRO_VALID) {
+                calibration::Vector3f goff(saved->gyro_offset[0],
+                                           saved->gyro_offset[1],
+                                           saved->gyro_offset[2]);
+                g_imu_instance->get_gyro_calibration().set_offset(goff);
+                syslog(LOG_INFO, "[sensors] Gyro offset: [%+.4f %+.4f %+.4f] rad/s\n",
+                       (double)saved->gyro_offset[0], (double)saved->gyro_offset[1],
+                       (double)saved->gyro_offset[2]);
+            }
+            if (saved->flags & CALIB_FLAG_ACCEL_VALID) {
+                calibration::Vector3f aoff(saved->accel_offset[0],
+                                           saved->accel_offset[1],
+                                           saved->accel_offset[2]);
+                calibration::Vector3f ascl(saved->accel_scale[0],
+                                           saved->accel_scale[1],
+                                           saved->accel_scale[2]);
+                g_imu_instance->get_accel_calibration().set_offset(aoff);
+                g_imu_instance->get_accel_calibration().set_scale(ascl);
+                syslog(LOG_INFO, "[sensors] Accel offset: [%+.4f %+.4f %+.4f] m/s2\n",
+                       (double)saved->accel_offset[0], (double)saved->accel_offset[1],
+                       (double)saved->accel_offset[2]);
+            }
+        } else {
+            syslog(LOG_INFO,
+                   "[sensors] Backup SRAM: chua co calib (first-run, cleared, hoac mat VBAT)\n");
+        }
+    }
 
     /*=========================================================================
      * PHASE 5: Advertise uORB topics

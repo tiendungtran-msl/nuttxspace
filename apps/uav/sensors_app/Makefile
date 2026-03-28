@@ -57,6 +57,7 @@ CXXFLAGS += -I$(APPDIR)/uav/lib
 CXXFLAGS += -I$(APPDIR)/uav/lib/platform
 CXXFLAGS += -I$(APPDIR)/uav/lib/utils
 CXXFLAGS += -I$(APPDIR)/uav/drivers
+CXXFLAGS += -I$(APPDIR)/uav/calib_app
 CXXFLAGS += -I$(TOPDIR)/boards/arm/stm32h7/uav_states/src
 
 # C++ configuration

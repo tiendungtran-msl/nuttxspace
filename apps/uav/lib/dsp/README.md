@@ -37,7 +37,7 @@ Bộ lọc thông thấp **bậc 2 Butterworth** (biquad):
 Gain (dB)
    0 ──────────────────┐
                        │
-  -3 ─ ─ ─ ─ ─ ─ ─ ─ ─┼─ ─ ─ ─ ─ cutoff
+  -3 ─ ─ ─ ─ ─ ─ ─ ─ ─ ┼─ ─ ─ ─ ─ cutoff
                        │\
   -12 ─ ─ ─ ─ ─ ─ ─ ─ ─┼─\─ ─ ─ ─ 1 octave
                        │  \

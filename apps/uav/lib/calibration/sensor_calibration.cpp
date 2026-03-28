@@ -22,9 +22,9 @@ Accelerometer::Accelerometer()
 
 bool Accelerometer::set_offset(const Vector3f &offset_m_s2)
 {
-    /* Kiểm tra offset thay đổi đáng kể (threshold: 0.01 m/s²) */
+    /* Nguong nho de van chap nhan cac bias nho sau calibration */
     Vector3f delta = _offset - offset_m_s2;
-    if (delta.norm() > 0.01f) {
+    if (delta.norm() > 1e-6f) {
         if (offset_m_s2.is_finite()) {
             _offset = offset_m_s2;
             _calibration_count++;
@@ -36,9 +36,9 @@ bool Accelerometer::set_offset(const Vector3f &offset_m_s2)
 
 bool Accelerometer::set_scale(const Vector3f &scale)
 {
-    /* Kiểm tra scale thay đổi đáng kể (threshold: 0.01) */
+    /* Nguong nho de cap nhat scale chinh xac tu calibration */
     Vector3f delta = _scale - scale;
-    if (delta.norm() > 0.01f) {
+    if (delta.norm() > 1e-6f) {
         /* Verify all scale factors are positive and finite */
         if (scale.is_finite() && scale.x > 0.0f && scale.y > 0.0f && scale.z > 0.0f) {
             _scale = scale;
@@ -84,9 +84,9 @@ Gyroscope::Gyroscope()
 
 bool Gyroscope::set_offset(const Vector3f &offset_rad_s)
 {
-    /* Kiểm tra offset thay đổi đáng kể (threshold: 0.01 rad/s) */
+    /* Nguong nho de van chap nhan gyro bias nho (~0.001 rad/s) */
     Vector3f delta = _offset - offset_rad_s;
-    if (delta.norm() > 0.01f) {
+    if (delta.norm() > 1e-6f) {
         if (offset_rad_s.is_finite()) {
             _offset = offset_rad_s;
             _calibration_count++;
