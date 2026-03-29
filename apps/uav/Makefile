@@ -11,7 +11,7 @@
 # 1. lib - shared libraries (mathlib, geo)
 # 2. uorb - message bus
 # 3. drivers - hardware drivers
-# 4. apps - sensors, estimator, state
+# 4. apps - sensors, eskf, state
 #
 ############################################################################
 
@@ -22,7 +22,6 @@ SUBDIRS  = lib
 SUBDIRS += uorb
 SUBDIRS += drivers
 SUBDIRS += sensors_app
-SUBDIRS += estimator_app
 SUBDIRS += eskf_app
 SUBDIRS += state_app
 SUBDIRS += telemetry_app

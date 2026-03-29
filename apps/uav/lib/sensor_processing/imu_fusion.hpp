@@ -54,6 +54,21 @@ namespace sensor_processing {
 #define CONFIG_UAV_IMU_FAULT_COUNT_THRESHOLD    10
 #endif
 
+/* Số samples liên tiếp tốt để recover IMU sau khi bị loại */
+#ifndef CONFIG_UAV_IMU_RECOVERY_COUNT_THRESHOLD
+#define CONFIG_UAV_IMU_RECOVERY_COUNT_THRESHOLD 30
+#endif
+
+/* Chênh lệch timestamp tối đa giữa các IMU được phép fusion (us) */
+#ifndef CONFIG_UAV_IMU_MAX_TIMESTAMP_SKEW_US
+#define CONFIG_UAV_IMU_MAX_TIMESTAMP_SKEW_US    5000
+#endif
+
+/* Ngưỡng inlier cho robust fusion (score chuẩn hóa) */
+#ifndef CONFIG_UAV_IMU_INLIER_GATE
+#define CONFIG_UAV_IMU_INLIER_GATE              2.5f
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -87,6 +102,7 @@ struct ImuStatus {
     bool functional;        /**< IMU có hoạt động không */
     bool selected;          /**< IMU có được chọn để fusion không */
     uint32_t fault_count;   /**< Số samples liên tiếp lệch */
+    uint32_t recovery_count;/**< Số samples liên tiếp tốt */
     uint32_t total_samples; /**< Tổng samples đã nhận */
     uint32_t error_samples; /**< Tổng samples lỗi */
     float noise_estimate;   /**< Ước lượng noise level */
@@ -210,10 +226,14 @@ private:
     void fuse_voting(FusedImuData& result);
     void fuse_weighted(FusedImuData& result);
     void fuse_primary(FusedImuData& result);
+    void compute_reference_median(float gyro_ref[3], float accel_ref[3], float &temp_ref) const;
+    float compute_residual_score(uint8_t imu_index,
+                                 const float gyro_ref[3],
+                                 const float accel_ref[3]) const;
 
     /* Fault detection */
     void check_faults();
-    float calculate_median(float values[], uint8_t count);
+    float calculate_median(float values[], uint8_t count) const;
 
     /* Noise estimation */
     void update_noise_estimate(uint8_t imu_index, const ImuData& data);

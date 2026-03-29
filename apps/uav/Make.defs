@@ -10,7 +10,7 @@
 ############################################################################
 
 # UAV là container directory (không build trực tiếp như 1 app).
-# Chỉ build các subcomponents (uorb, sensors_app, estimator_app, state_app, ...)
+# Chỉ build các subcomponents (uorb, sensors_app, eskf_app, state_app, ...)
 # thông qua các Make.defs con.
 
 # Include first level subdirectories

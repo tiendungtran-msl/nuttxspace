@@ -66,7 +66,6 @@ int HealthMonitor::init()
     for (int i = 0; i < static_cast<int>(ComponentId::COMPONENT_COUNT); i++) {
         m_components[i].last_heartbeat_us = 0;
         m_components[i].missed_beats = 0;
-        m_components[i].error_count = 0;
         m_components[i].total_beats = 0;
         m_components[i].functional = false;
         m_components[i].present = false;
@@ -146,21 +145,6 @@ void HealthMonitor::heartbeat(ComponentId id)
     comp.level = HealthLevel::NOMINAL;
 }
 
-void HealthMonitor::report_error(ComponentId id, int error_code)
-{
-    (void)error_code;
-
-    if (!m_initialized || id >= ComponentId::COMPONENT_COUNT) {
-        return;
-    }
-
-    int idx = static_cast<int>(id);
-    m_components[idx].error_count++;
-
-    syslog(LOG_WARNING, "[health] %s reported error (total: %lu)\n",
-           component_names[idx], (unsigned long)m_components[idx].error_count);
-}
-
 void HealthMonitor::set_present(ComponentId id, bool present)
 {
     if (!m_initialized || id >= ComponentId::COMPONENT_COUNT) {
@@ -174,17 +158,6 @@ void HealthMonitor::set_present(ComponentId id, bool present)
         m_components[idx].last_heartbeat_us = get_time_us();
         syslog(LOG_INFO, "[health] %s marked as present\n", component_names[idx]);
     }
-}
-
-const ComponentHealth& HealthMonitor::get_component_health(ComponentId id) const
-{
-    static ComponentHealth dummy = {};
-
-    if (id >= ComponentId::COMPONENT_COUNT) {
-        return dummy;
-    }
-
-    return m_components[static_cast<int>(id)];
 }
 
 SystemHealth HealthMonitor::get_system_health() const
@@ -204,32 +177,6 @@ SystemHealth HealthMonitor::get_system_health() const
     return status;
 }
 
-HealthLevel HealthMonitor::get_system_level() const
-{
-    return m_system_level;
-}
-
-bool HealthMonitor::should_failsafe() const
-{
-    /* Failsafe nếu:
-     * - Không có IMU nào hoạt động
-     * - Master tick chết
-     * - EKF chết
-     */
-
-    if (get_healthy_imu_count() == 0) {
-        return true;
-    }
-
-    if (!m_components[static_cast<int>(ComponentId::MASTER_TICK)].functional) {
-        return true;
-    }
-
-    /* EKF không bắt buộc cho attitude-only mode */
-
-    return m_system_level == HealthLevel::FAILSAFE;
-}
-
 uint8_t HealthMonitor::get_healthy_imu_count() const
 {
     uint8_t count = 0;
@@ -242,20 +189,6 @@ uint8_t HealthMonitor::get_healthy_imu_count() const
     }
 
     return count;
-}
-
-uint8_t HealthMonitor::get_healthy_imu_mask() const
-{
-    uint8_t mask = 0;
-
-    for (int i = static_cast<int>(ComponentId::IMU_0);
-         i <= static_cast<int>(ComponentId::IMU_3); i++) {
-        if (m_components[i].functional) {
-            mask |= (1 << (i - static_cast<int>(ComponentId::IMU_0)));
-        }
-    }
-
-    return mask;
 }
 
 void HealthMonitor::print_status() const
@@ -289,12 +222,11 @@ void HealthMonitor::print_status() const
             continue;
         }
 
-        printf("    %-12s: %s (beats=%lu, miss=%lu, err=%lu)\n",
+         printf("    %-12s: %s (beats=%lu, miss=%lu)\n",
                component_names[i],
                comp.functional ? "OK" : "FAIL",
                (unsigned long)comp.total_beats,
-               (unsigned long)comp.missed_beats,
-               (unsigned long)comp.error_count);
+             (unsigned long)comp.missed_beats);
     }
 }
 
@@ -338,22 +270,6 @@ HealthLevel HealthMonitor::calculate_system_level() const
 
     /* 4 IMU hoạt động */
     return HealthLevel::NOMINAL;
-}
-
-bool HealthMonitor::is_component_expired(ComponentId id) const
-{
-    if (id >= ComponentId::COMPONENT_COUNT) {
-        return true;
-    }
-
-    const ComponentHealth& comp = m_components[static_cast<int>(id)];
-
-    if (!comp.present) {
-        return true;
-    }
-
-    uint64_t elapsed_ms = (get_time_us() - comp.last_heartbeat_us) / 1000;
-    return elapsed_ms > CONFIG_UAV_HEARTBEAT_TIMEOUT_MS;
 }
 
 void HealthMonitor::update_component_level(ComponentId id)

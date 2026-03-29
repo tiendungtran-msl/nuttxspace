@@ -23,7 +23,7 @@
  *   monitor.heartbeat(COMPONENT_IMU_0);
  *
  *   // Main loop check system health
- *   if (monitor.get_system_level() == HealthLevel::CRITICAL) {
+ *   if (monitor.get_system_health().level == HealthLevel::CRITICAL) {
  *       enter_failsafe();
  *   }
  *
@@ -95,7 +95,6 @@ enum class ComponentId : uint8_t {
 struct ComponentHealth {
     uint64_t    last_heartbeat_us;  /* Timestamp của heartbeat gần nhất */
     uint32_t    missed_beats;       /* Số heartbeat bị miss liên tiếp */
-    uint32_t    error_count;        /* Tổng số lỗi */
     uint32_t    total_beats;        /* Tổng số heartbeats */
     bool        functional;         /* Component có hoạt động không */
     bool        present;            /* Component có tồn tại không */
@@ -154,14 +153,6 @@ public:
     void heartbeat(ComponentId id);
 
     /**
-     * @brief Component báo lỗi
-     *
-     * @param id Component ID
-     * @param error_code Error code (optional)
-     */
-    void report_error(ComponentId id, int error_code = 0);
-
-    /**
      * @brief Đánh dấu component là present/absent
      *
      * @param id Component ID
@@ -170,43 +161,11 @@ public:
     void set_present(ComponentId id, bool present);
 
     /**
-     * @brief Lấy health của một component
-     *
-     * @param id Component ID
-     * @return ComponentHealth struct
-     */
-    const ComponentHealth& get_component_health(ComponentId id) const;
-
-    /**
      * @brief Lấy tổng thể system health
      *
      * @return SystemHealth struct
      */
     SystemHealth get_system_health() const;
-
-    /**
-     * @brief Lấy health level của system
-     * @return HealthLevel
-     */
-    HealthLevel get_system_level() const;
-
-    /**
-     * @brief Kiểm tra có nên enter failsafe không
-     * @return true nếu nên failsafe
-     */
-    bool should_failsafe() const;
-
-    /**
-     * @brief Lấy số IMU đang hoạt động
-     * @return Số IMU functional
-     */
-    uint8_t get_healthy_imu_count() const;
-
-    /**
-     * @brief Lấy bitmask của IMU hoạt động
-     * @return Bitmask (bit 0 = IMU0, bit 1 = IMU1, etc.)
-     */
-    uint8_t get_healthy_imu_mask() const;
 
     /**
      * @brief In status debug
@@ -217,11 +176,11 @@ private:
     /* Tính toán system health level từ component states */
     HealthLevel calculate_system_level() const;
 
-    /* Check một component có expired không */
-    bool is_component_expired(ComponentId id) const;
-
     /* Update level của một component */
     void update_component_level(ComponentId id);
+
+    /* Runtime helper */
+    uint8_t get_healthy_imu_count() const;
 
     /* Get current time helper */
     uint64_t get_time_us() const;

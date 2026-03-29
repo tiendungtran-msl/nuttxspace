@@ -24,7 +24,6 @@ if UAV
 source "/home/msi-leibniz/nuttxspace/apps/uav/uorb/Kconfig"
 source "/home/msi-leibniz/nuttxspace/apps/uav/drivers/Kconfig"
 source "/home/msi-leibniz/nuttxspace/apps/uav/sensors_app/Kconfig"
-source "/home/msi-leibniz/nuttxspace/apps/uav/estimator_app/Kconfig"
 source "/home/msi-leibniz/nuttxspace/apps/uav/eskf_app/Kconfig"
 source "/home/msi-leibniz/nuttxspace/apps/uav/state_app/Kconfig"
 source "/home/msi-leibniz/nuttxspace/apps/uav/telemetry_app/Kconfig"

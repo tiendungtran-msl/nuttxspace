@@ -24,7 +24,7 @@ config UAV_STATE_PRIORITY
 	default 220
 	---help---
 		Priority của state manager task.
-		Thấp hơn estimator (240).
+		Thấp hơn sensors/eskf (240+).
 
 config UAV_STATE_STACKSIZE
 	int "State manager task stack size"
@@ -55,7 +55,7 @@ config UAV_STATE_ATT_TIMEOUT_MS
 	range 100 2000
 	---help---
 		Timeout cho attitude estimate.
-		Failsafe sẽ trigger nếu estimator mất.
+		Failsafe sẽ trigger nếu attitude stream mất.
 
 config UAV_STATE_PREFLIGHT_GPS
 	bool "Require GPS for arming"

@@ -11,12 +11,12 @@
  *
  * THIẾT KẾ:
  * - Rate-based loop (50 Hz)
- * - Subscribe attitude/position từ estimator
+ * - Subscribe IMU + attitude estimate
  * - Publish vehicle_state cho controller
  *
  * TIMING:
  * - Loop rate: 50 Hz (20 ms period)
- * - Priority: 220 (thấp hơn estimator)
+ * - Priority: 220 (thấp hơn sensors/eskf)
  *
  ****************************************************************************/
 
@@ -38,7 +38,6 @@
 
 #include <uav/uorb/uorb.hpp>
 #include <uav/uorb/topics/vehicle_attitude.hpp>
-#include <uav/uorb/topics/vehicle_local_position.hpp>
 #include <uav/uorb/topics/sensor_imu.hpp>
 #include <uav/uorb/topics/vehicle_state.hpp>
 
@@ -142,7 +141,6 @@ static volatile bool g_disarm_request = false;
 
 // Subscriptions
 static int g_att_sub = -1;
-static int g_pos_sub = -1;
 static int g_imu_sub = -1;
 
 // Publications
@@ -150,7 +148,6 @@ static uorb::orb_advert_t g_state_pub = nullptr;
 
 // Pre-allocated messages
 static vehicle_attitude_s g_att_data;
-static vehicle_local_position_s g_pos_data;
 static sensor_imu_s g_imu_data;
 static vehicle_state_s g_state_msg;
 
@@ -396,10 +393,6 @@ static void update_subscriptions(void)
         }
     }
 
-    // Position (optional)
-    if (uorb::orb_check(g_pos_sub, &updated) == 0 && updated) {
-        uorb::orb_copy(ORB_ID(vehicle_local_position), g_pos_sub, &g_pos_data);
-    }
 }
 
 /****************************************************************************
@@ -427,7 +420,6 @@ static int state_thread_main(int argc, char *argv[])
 
     g_imu_sub = uorb::orb_subscribe(ORB_ID(sensor_imu));
     g_att_sub = uorb::orb_subscribe(ORB_ID(vehicle_attitude));
-    g_pos_sub = uorb::orb_subscribe(ORB_ID(vehicle_local_position));
 
     //=========================================================================
     // PHASE 3: Advertise
@@ -507,7 +499,6 @@ static int state_thread_main(int argc, char *argv[])
 
     uorb::orb_unsubscribe(g_imu_sub);
     uorb::orb_unsubscribe(g_att_sub);
-    uorb::orb_unsubscribe(g_pos_sub);
 
     if (g_state_pub) uorb::orb_unadvertise(g_state_pub);
 

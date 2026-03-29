@@ -12,6 +12,8 @@
 namespace uav {
 namespace sensor_processing {
 
+static constexpr float kEps = 1e-6f;
+
 /****************************************************************************
  * Helper Functions
  ****************************************************************************/
@@ -85,6 +87,7 @@ int ImuFusion::init(uint8_t num_imus)
         m_imu_status[i].functional = false;
         m_imu_status[i].selected = false;
         m_imu_status[i].fault_count = 0;
+        m_imu_status[i].recovery_count = 0;
         m_imu_status[i].total_samples = 0;
         m_imu_status[i].error_samples = 0;
         m_imu_status[i].noise_estimate = 0.01f;  /* Default noise */
@@ -130,6 +133,11 @@ void ImuFusion::set_imu_present(uint8_t imu_index, bool present)
         m_imu_status[imu_index].present = present;
         if (present) {
             m_imu_status[imu_index].functional = true;
+            m_imu_status[imu_index].fault_count = 0;
+            m_imu_status[imu_index].recovery_count = 0;
+        } else {
+            m_imu_status[imu_index].functional = false;
+            m_imu_status[imu_index].selected = false;
         }
     }
 }
@@ -162,11 +170,27 @@ int ImuFusion::fuse(FusedImuData& result)
     /* Check faults first */
     check_faults();
 
-    /* Count healthy IMUs */
+    uint64_t newest_ts = 0;
+    for (uint8_t i = 0; i < m_num_imus; i++) {
+        if (m_imu_status[i].present && m_imu_data[i].valid &&
+            m_imu_data[i].timestamp_us > newest_ts) {
+            newest_ts = m_imu_data[i].timestamp_us;
+        }
+    }
+
+    if (newest_ts == 0) {
+        result.valid = false;
+        return -1;
+    }
+
+    /* Count healthy and fresh IMUs */
     uint8_t healthy_count = 0;
     for (uint8_t i = 0; i < m_num_imus; i++) {
+        bool fresh = (newest_ts - m_imu_data[i].timestamp_us) <=
+                     CONFIG_UAV_IMU_MAX_TIMESTAMP_SKEW_US;
+
         if (m_imu_status[i].present && m_imu_status[i].functional &&
-            m_imu_data[i].valid) {
+            m_imu_data[i].valid && fresh) {
             healthy_count++;
             m_imu_status[i].selected = true;
         } else {
@@ -198,7 +222,7 @@ int ImuFusion::fuse(FusedImuData& result)
             break;
     }
 
-    /* Use newest timestamp */
+    /* Use newest selected timestamp */
     uint64_t newest = 0;
     for (uint8_t i = 0; i < m_num_imus; i++) {
         if (m_imu_status[i].selected && m_imu_data[i].timestamp_us > newest) {
@@ -211,145 +235,264 @@ int ImuFusion::fuse(FusedImuData& result)
     return 0;
 }
 
-void ImuFusion::fuse_voting(FusedImuData& result)
+void ImuFusion::compute_reference_median(float gyro_ref[3], float accel_ref[3], float &temp_ref) const
 {
-    /* Collect values từ healthy IMUs */
-    float gyro_x[CONFIG_UAV_NUM_IMUS], gyro_y[CONFIG_UAV_NUM_IMUS], gyro_z[CONFIG_UAV_NUM_IMUS];
-    float accel_x[CONFIG_UAV_NUM_IMUS], accel_y[CONFIG_UAV_NUM_IMUS], accel_z[CONFIG_UAV_NUM_IMUS];
-    float temp[CONFIG_UAV_NUM_IMUS];
-    uint8_t count = 0;
+    float gx[CONFIG_UAV_NUM_IMUS];
+    float gy[CONFIG_UAV_NUM_IMUS];
+    float gz[CONFIG_UAV_NUM_IMUS];
+    float ax[CONFIG_UAV_NUM_IMUS];
+    float ay[CONFIG_UAV_NUM_IMUS];
+    float az[CONFIG_UAV_NUM_IMUS];
+    float tt[CONFIG_UAV_NUM_IMUS];
 
+    uint8_t count = 0;
     for (uint8_t i = 0; i < m_num_imus; i++) {
-        if (m_imu_status[i].selected) {
-            gyro_x[count] = m_imu_data[i].gyro[0];
-            gyro_y[count] = m_imu_data[i].gyro[1];
-            gyro_z[count] = m_imu_data[i].gyro[2];
-            accel_x[count] = m_imu_data[i].accel[0];
-            accel_y[count] = m_imu_data[i].accel[1];
-            accel_z[count] = m_imu_data[i].accel[2];
-            temp[count] = m_imu_data[i].temperature;
-            count++;
+        if (!m_imu_status[i].selected) {
+            continue;
+        }
+
+        gx[count] = m_imu_data[i].gyro[0];
+        gy[count] = m_imu_data[i].gyro[1];
+        gz[count] = m_imu_data[i].gyro[2];
+        ax[count] = m_imu_data[i].accel[0];
+        ay[count] = m_imu_data[i].accel[1];
+        az[count] = m_imu_data[i].accel[2];
+        tt[count] = m_imu_data[i].temperature;
+        count++;
+    }
+
+    if (count == 0) {
+        gyro_ref[0] = gyro_ref[1] = gyro_ref[2] = 0.0f;
+        accel_ref[0] = accel_ref[1] = accel_ref[2] = 0.0f;
+        temp_ref = 0.0f;
+        return;
+    }
+
+    gyro_ref[0] = calculate_median(gx, count);
+    gyro_ref[1] = calculate_median(gy, count);
+    gyro_ref[2] = calculate_median(gz, count);
+
+    accel_ref[0] = calculate_median(ax, count);
+    accel_ref[1] = calculate_median(ay, count);
+    accel_ref[2] = calculate_median(az, count);
+
+    temp_ref = calculate_median(tt, count);
+}
+
+float ImuFusion::compute_residual_score(uint8_t imu_index,
+                                        const float gyro_ref[3],
+                                        const float accel_ref[3]) const
+{
+    float gyro_ratio_max = 0.0f;
+    float accel_ratio_max = 0.0f;
+
+    for (int axis = 0; axis < 3; axis++) {
+        float dg = fabsf(m_imu_data[imu_index].gyro[axis] - gyro_ref[axis]);
+        float da = fabsf(m_imu_data[imu_index].accel[axis] - accel_ref[axis]);
+
+        float rg = dg / (CONFIG_UAV_IMU_FAULT_THRESHOLD_GYRO + kEps);
+        float ra = da / (CONFIG_UAV_IMU_FAULT_THRESHOLD_ACCEL + kEps);
+
+        if (rg > gyro_ratio_max) {
+            gyro_ratio_max = rg;
+        }
+        if (ra > accel_ratio_max) {
+            accel_ratio_max = ra;
         }
     }
 
-    /* Calculate median for each axis */
-    result.gyro[0] = calculate_median(gyro_x, count);
-    result.gyro[1] = calculate_median(gyro_y, count);
-    result.gyro[2] = calculate_median(gyro_z, count);
-    result.accel[0] = calculate_median(accel_x, count);
-    result.accel[1] = calculate_median(accel_y, count);
-    result.accel[2] = calculate_median(accel_z, count);
-    result.temperature = calculate_median(temp, count);
+    return (gyro_ratio_max > accel_ratio_max) ? gyro_ratio_max : accel_ratio_max;
+}
+
+void ImuFusion::fuse_voting(FusedImuData& result)
+{
+    float gyro_ref[3];
+    float accel_ref[3];
+    float temp_ref = 0.0f;
+    compute_reference_median(gyro_ref, accel_ref, temp_ref);
+
+    /* Median baseline */
+    for (int axis = 0; axis < 3; axis++) {
+        result.gyro[axis] = gyro_ref[axis];
+        result.accel[axis] = accel_ref[axis];
+    }
+    result.temperature = temp_ref;
+
+    /* Inlier-weighted refinement quanh median để tăng độ chính xác */
+    float sum_gyro[3] = {0.0f, 0.0f, 0.0f};
+    float sum_accel[3] = {0.0f, 0.0f, 0.0f};
+    float sum_temp = 0.0f;
+    float wsum = 0.0f;
+
+    for (uint8_t i = 0; i < m_num_imus; i++) {
+        if (!m_imu_status[i].selected) {
+            continue;
+        }
+
+        float score = compute_residual_score(i, gyro_ref, accel_ref);
+        if (score > CONFIG_UAV_IMU_INLIER_GATE) {
+            continue;
+        }
+
+        float w = 1.0f / (1.0f + score);
+        wsum += w;
+
+        for (int axis = 0; axis < 3; axis++) {
+            sum_gyro[axis] += w * m_imu_data[i].gyro[axis];
+            sum_accel[axis] += w * m_imu_data[i].accel[axis];
+        }
+        sum_temp += w * m_imu_data[i].temperature;
+    }
+
+    if (wsum > kEps) {
+        for (int axis = 0; axis < 3; axis++) {
+            result.gyro[axis] = sum_gyro[axis] / wsum;
+            result.accel[axis] = sum_accel[axis] / wsum;
+        }
+        result.temperature = sum_temp / wsum;
+    }
 }
 
 void ImuFusion::fuse_weighted(FusedImuData& result)
 {
+    float gyro_ref[3];
+    float accel_ref[3];
+    float temp_ref = 0.0f;
+    compute_reference_median(gyro_ref, accel_ref, temp_ref);
+
     float weight_sum = 0.0f;
 
     for (uint8_t i = 0; i < m_num_imus; i++) {
-        if (m_imu_status[i].selected) {
-            float w = m_imu_status[i].weight;
-            weight_sum += w;
-
-            for (int j = 0; j < 3; j++) {
-                result.gyro[j] += w * m_imu_data[i].gyro[j];
-                result.accel[j] += w * m_imu_data[i].accel[j];
-            }
-            result.temperature += w * m_imu_data[i].temperature;
+        if (!m_imu_status[i].selected) {
+            continue;
         }
+
+        float score = compute_residual_score(i, gyro_ref, accel_ref);
+        if (score > CONFIG_UAV_IMU_INLIER_GATE) {
+            continue;
+        }
+
+        float robust = 1.0f / (1.0f + score * score);
+        float w = m_imu_status[i].weight * robust;
+
+        weight_sum += w;
+
+        for (int j = 0; j < 3; j++) {
+            result.gyro[j] += w * m_imu_data[i].gyro[j];
+            result.accel[j] += w * m_imu_data[i].accel[j];
+        }
+        result.temperature += w * m_imu_data[i].temperature;
     }
 
-    /* Normalize */
-    if (weight_sum > 0.0f) {
+    if (weight_sum > kEps) {
         for (int j = 0; j < 3; j++) {
             result.gyro[j] /= weight_sum;
             result.accel[j] /= weight_sum;
         }
         result.temperature /= weight_sum;
+    } else {
+        /* fallback an toàn khi không còn inlier */
+        fuse_voting(result);
     }
 }
 
 void ImuFusion::fuse_primary(FusedImuData& result)
 {
-    /* Try primary first */
     if (m_imu_status[m_primary_imu].selected) {
-        for (int j = 0; j < 3; j++) {
-            result.gyro[j] = m_imu_data[m_primary_imu].gyro[j];
-            result.accel[j] = m_imu_data[m_primary_imu].accel[j];
-        }
-        result.temperature = m_imu_data[m_primary_imu].temperature;
-        return;
-    }
+        float gyro_ref[3];
+        float accel_ref[3];
+        float temp_ref = 0.0f;
+        compute_reference_median(gyro_ref, accel_ref, temp_ref);
 
-    /* Fallback to first available */
-    for (uint8_t i = 0; i < m_num_imus; i++) {
-        if (m_imu_status[i].selected) {
+        float score = compute_residual_score(m_primary_imu, gyro_ref, accel_ref);
+        if (score <= CONFIG_UAV_IMU_INLIER_GATE) {
             for (int j = 0; j < 3; j++) {
-                result.gyro[j] = m_imu_data[i].gyro[j];
-                result.accel[j] = m_imu_data[i].accel[j];
+                result.gyro[j] = m_imu_data[m_primary_imu].gyro[j];
+                result.accel[j] = m_imu_data[m_primary_imu].accel[j];
             }
-            result.temperature = m_imu_data[i].temperature;
+            result.temperature = m_imu_data[m_primary_imu].temperature;
             return;
         }
     }
+
+    /* Fallback: robust weighted fusion */
+    update_weights();
+    fuse_weighted(result);
 }
 
 void ImuFusion::check_faults()
 {
-    /* Calculate median for comparison */
-    float gyro_med[3], accel_med[3];
+    uint64_t newest_ts = 0;
+    for (uint8_t i = 0; i < m_num_imus; i++) {
+        if (m_imu_status[i].present && m_imu_data[i].valid &&
+            m_imu_data[i].timestamp_us > newest_ts) {
+            newest_ts = m_imu_data[i].timestamp_us;
+        }
+    }
+
+    if (newest_ts == 0) {
+        return;
+    }
+
+    /* Calculate reference median from fresh valid IMUs */
+    float gyro_med[3] = {0.0f, 0.0f, 0.0f};
+    float accel_med[3] = {0.0f, 0.0f, 0.0f};
     float values[CONFIG_UAV_NUM_IMUS];
-    uint8_t count;
+    bool has_reference = false;
 
     for (int axis = 0; axis < 3; axis++) {
-        count = 0;
+        uint8_t count = 0;
         for (uint8_t i = 0; i < m_num_imus; i++) {
-            if (m_imu_status[i].present && m_imu_data[i].valid) {
+            bool fresh = (newest_ts - m_imu_data[i].timestamp_us) <=
+                         CONFIG_UAV_IMU_MAX_TIMESTAMP_SKEW_US;
+            if (m_imu_status[i].present && m_imu_data[i].valid && fresh) {
                 values[count++] = m_imu_data[i].gyro[axis];
             }
         }
-        gyro_med[axis] = (count > 0) ? calculate_median(values, count) : 0.0f;
+        if (count > 0) {
+            gyro_med[axis] = calculate_median(values, count);
+            has_reference = true;
+        }
 
         count = 0;
         for (uint8_t i = 0; i < m_num_imus; i++) {
-            if (m_imu_status[i].present && m_imu_data[i].valid) {
+            bool fresh = (newest_ts - m_imu_data[i].timestamp_us) <=
+                         CONFIG_UAV_IMU_MAX_TIMESTAMP_SKEW_US;
+            if (m_imu_status[i].present && m_imu_data[i].valid && fresh) {
                 values[count++] = m_imu_data[i].accel[axis];
             }
         }
-        accel_med[axis] = (count > 0) ? calculate_median(values, count) : 0.0f;
+        if (count > 0) {
+            accel_med[axis] = calculate_median(values, count);
+            has_reference = true;
+        }
     }
 
-    /* Check each IMU against median */
+    if (!has_reference) {
+        return;
+    }
+
+    /* Check each IMU against reference with hysteresis */
     for (uint8_t i = 0; i < m_num_imus; i++) {
-        if (!m_imu_status[i].present || !m_imu_data[i].valid) {
+        if (!m_imu_status[i].present) {
+            m_imu_status[i].functional = false;
+            m_imu_status[i].selected = false;
             continue;
         }
 
-        bool fault_detected = false;
+        bool fresh = m_imu_data[i].valid &&
+                     (newest_ts - m_imu_data[i].timestamp_us) <=
+                     CONFIG_UAV_IMU_MAX_TIMESTAMP_SKEW_US;
 
-        /* Check gyro */
-        for (int axis = 0; axis < 3; axis++) {
-            float diff = fabsf(m_imu_data[i].gyro[axis] - gyro_med[axis]);
-            if (diff > CONFIG_UAV_IMU_FAULT_THRESHOLD_GYRO) {
-                fault_detected = true;
-                break;
-            }
+        bool fault_detected = true;
+        if (fresh) {
+            float score = compute_residual_score(i, gyro_med, accel_med);
+            fault_detected = score > 1.0f;
         }
 
-        /* Check accel */
-        if (!fault_detected) {
-            for (int axis = 0; axis < 3; axis++) {
-                float diff = fabsf(m_imu_data[i].accel[axis] - accel_med[axis]);
-                if (diff > CONFIG_UAV_IMU_FAULT_THRESHOLD_ACCEL) {
-                    fault_detected = true;
-                    break;
-                }
-            }
-        }
-
-        /* Update fault counter */
         if (fault_detected) {
             m_imu_status[i].fault_count++;
+            m_imu_status[i].recovery_count = 0;
             m_imu_status[i].error_samples++;
 
             if (m_imu_status[i].fault_count >= CONFIG_UAV_IMU_FAULT_COUNT_THRESHOLD) {
@@ -359,13 +502,27 @@ void ImuFusion::check_faults()
                 m_imu_status[i].functional = false;
             }
         } else {
-            m_imu_status[i].fault_count = 0;
-            m_imu_status[i].functional = true;
+            if (m_imu_status[i].fault_count > 0) {
+                m_imu_status[i].fault_count--;
+            }
+
+            m_imu_status[i].recovery_count++;
+
+            if (!m_imu_status[i].functional &&
+                m_imu_status[i].recovery_count >= CONFIG_UAV_IMU_RECOVERY_COUNT_THRESHOLD) {
+                m_imu_status[i].functional = true;
+                m_imu_status[i].fault_count = 0;
+                syslog(LOG_INFO, "[imu_fusion] IMU %d recovered\n", i);
+            }
+
+            if (m_imu_status[i].functional) {
+                m_imu_status[i].selected = true;
+            }
         }
     }
 }
 
-float ImuFusion::calculate_median(float values[], uint8_t count)
+float ImuFusion::calculate_median(float values[], uint8_t count) const
 {
     if (count == 0) {
         return 0.0f;
@@ -386,44 +543,82 @@ float ImuFusion::calculate_median(float values[], uint8_t count)
 
 void ImuFusion::update_noise_estimate(uint8_t imu_index, const ImuData& data)
 {
-    /* Simple noise estimate: running average of squared differences */
-    float alpha = 0.01f;  /* Smoothing factor */
-
-    float diff_sq = 0.0f;
-    for (int j = 0; j < 3; j++) {
-        float d = data.gyro[j] - m_last_imu_data[imu_index].gyro[j];
-        diff_sq += d * d;
+    if (!m_last_imu_data[imu_index].valid) {
+        return;
     }
 
-    float noise = sqrtf(diff_sq / 3.0f);
+    /* Noise estimate từ biến thiên gyro + accel */
+    const float alpha = 0.02f;
+
+    float gyro_diff_sq = 0.0f;
+    float accel_diff_sq = 0.0f;
+
+    for (int j = 0; j < 3; j++) {
+        float dg = data.gyro[j] - m_last_imu_data[imu_index].gyro[j];
+        float da = data.accel[j] - m_last_imu_data[imu_index].accel[j];
+        gyro_diff_sq += dg * dg;
+        accel_diff_sq += da * da;
+    }
+
+    float gyro_rms = sqrtf(gyro_diff_sq / 3.0f);
+    float accel_rms = sqrtf(accel_diff_sq / 3.0f);
+
+    /* Quy đổi accel về cùng thang ảnh hưởng với gyro để ra chỉ số noise hỗn hợp */
+    float composite_noise = gyro_rms + 0.02f * accel_rms;
+    if (composite_noise < 1e-4f) {
+        composite_noise = 1e-4f;
+    }
+
     m_imu_status[imu_index].noise_estimate =
-        (1.0f - alpha) * m_imu_status[imu_index].noise_estimate + alpha * noise;
+        (1.0f - alpha) * m_imu_status[imu_index].noise_estimate + alpha * composite_noise;
 }
 
 void ImuFusion::update_weights()
 {
-    /* Weights inversely proportional to noise */
-    float total_inv_noise = 0.0f;
+    float quality_sum = 0.0f;
 
     for (uint8_t i = 0; i < m_num_imus; i++) {
         if (m_imu_status[i].selected) {
             float noise = m_imu_status[i].noise_estimate;
-            if (noise < 0.0001f) {
-                noise = 0.0001f;  /* Prevent division by zero */
+            if (noise < 1e-4f) {
+                noise = 1e-4f;
             }
-            total_inv_noise += 1.0f / noise;
+
+            float noise_quality = 1.0f / noise;
+            float health_quality = 1.0f / (1.0f + 0.25f * m_imu_status[i].fault_count);
+            float quality = noise_quality * health_quality;
+
+            m_imu_status[i].weight = quality;
+            quality_sum += quality;
+        } else {
+            m_imu_status[i].weight = 0.0f;
         }
+    }
+
+    if (quality_sum <= kEps) {
+        /* fallback uniform cho các IMU selected */
+        uint8_t selected_count = 0;
+        for (uint8_t i = 0; i < m_num_imus; i++) {
+            if (m_imu_status[i].selected) {
+                selected_count++;
+            }
+        }
+
+        if (selected_count > 0) {
+            float uniform = 1.0f / selected_count;
+            for (uint8_t i = 0; i < m_num_imus; i++) {
+                if (m_imu_status[i].selected) {
+                    m_imu_status[i].weight = uniform;
+                }
+            }
+        }
+
+        return;
     }
 
     for (uint8_t i = 0; i < m_num_imus; i++) {
         if (m_imu_status[i].selected) {
-            float noise = m_imu_status[i].noise_estimate;
-            if (noise < 0.0001f) {
-                noise = 0.0001f;
-            }
-            m_imu_status[i].weight = (1.0f / noise) / total_inv_noise;
-        } else {
-            m_imu_status[i].weight = 0.0f;
+            m_imu_status[i].weight /= quality_sum;
         }
     }
 }
@@ -463,6 +658,7 @@ void ImuFusion::reset_fault_detection()
 {
     for (uint8_t i = 0; i < m_num_imus; i++) {
         m_imu_status[i].fault_count = 0;
+        m_imu_status[i].recovery_count = 0;
         m_imu_status[i].error_samples = 0;
         if (m_imu_status[i].present) {
             m_imu_status[i].functional = true;
@@ -494,12 +690,14 @@ void ImuFusion::print_status() const
     printf("\n  Per-IMU status:\n");
     for (uint8_t i = 0; i < m_num_imus; i++) {
         const ImuStatus& s = m_imu_status[i];
-        printf("    IMU %d: %s/%s (samples=%lu, errors=%lu, noise=%.4f, weight=%.2f)\n",
+        printf("    IMU %d: %s/%s (samples=%lu, errors=%lu, fcnt=%lu, rcnt=%lu, noise=%.4f, weight=%.2f)\n",
                i,
                s.present ? "PRESENT" : "ABSENT",
                s.functional ? "OK" : "FAIL",
                (unsigned long)s.total_samples,
                (unsigned long)s.error_samples,
+               (unsigned long)s.fault_count,
+               (unsigned long)s.recovery_count,
                (double)s.noise_estimate,
                (double)s.weight);
     }
@@ -521,8 +719,7 @@ void integrate_imu_samples(const ImuData* samples, uint8_t count, DeltaState& ou
 
     float total_dt = 0.0f;
     float prev_gyro[3] = {0}, prev_accel[3] = {0};
-    uint64_t first_ts = samples[0].timestamp_us;
-    uint64_t last_ts = first_ts;
+    uint64_t last_ts = samples[0].timestamp_us;
 
     for (uint8_t i = 0; i < count; i++) {
         const ImuData& s = samples[i];
